@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "audio2scene"
+version = "0.3.0"
+description = "AI-powered structural labeling for instrumental music. 100% offline."
+readme = "README.md"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Kelvin Yuli Andrian" }]
+requires-python = ">=3.9"
+keywords = ["audio", "music", "structure", "segmentation", "dsp", "librosa", "offline"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Sound/Audio :: Analysis",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "numpy>=1.22",
+    "librosa>=0.10",
+    "soundfile>=0.12",
+    "scipy>=1.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov",
+]
+
+[project.scripts]
+audio2scene = "audio2scene.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["audio2scene*"]
