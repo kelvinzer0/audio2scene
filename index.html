@@ -872,7 +872,7 @@ function buildSegmentsSvg(segments, duration) {
 
 /* ---------- Card builder ---------- */
 function buildCard(song, idx) {
-  const audioSrc = song.path || ('songs/' + song.file);
+  const audioSrc = song.url || song.path || ('songs/' + song.file);
   const card = document.createElement('article');
   card.className = 'card';
   card.dataset.id = String(idx);
