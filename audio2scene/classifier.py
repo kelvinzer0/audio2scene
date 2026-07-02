@@ -48,6 +48,8 @@ class LabeledSegment:
     start: float
     end: float
     confidence: float
+    intensity: float = 0.0          # 0..1, normalized energy/flux composite
+    intensity_label: str = ""       # "low" / "medium" / "high" / "drop"
 
     @property
     def duration(self) -> float:
@@ -59,6 +61,8 @@ class LabeledSegment:
             "start": round(self.start, 3),
             "end": round(self.end, 3),
             "confidence": round(self.confidence, 3),
+            "intensity": round(self.intensity, 3),
+            "intensity_label": self.intensity_label,
         }
 
 
@@ -195,15 +199,38 @@ def classify_segments(features: FeatureMatrix, segments: List[Segment]) -> List[
         else:
             confidences[i] = _conf(0.85)
 
-    # Build labeled segments
+    # Build labeled segments + intensity scoring
+    # Intensity = normalized composite of RMS_mean and Flux_mean relative to song median.
+    # Used downstream by video editor for effect mapping (drop / build-up / break).
+    rms_max_song = float(np.max(features.rms)) if features.rms.size else 0.0
+    flux_max_song = float(np.max(features.spectral_flux)) if features.spectral_flux.size else 0.0
+
     out: List[LabeledSegment] = []
     for i, st in enumerate(stats):
         seg = st["seg"]
+        # Intensity = 0.6 * rms_norm + 0.4 * flux_norm
+        rms_norm = st["rms_mean"] / (rms_max_song + 1e-9)
+        flux_norm = st["flux_mean"] / (flux_max_song + 1e-9)
+        intensity = float(np.clip(0.6 * rms_norm + 0.4 * flux_norm, 0.0, 1.0))
+
+        # Intensity label — used for effect mapping
+        # "drop" = very high intensity after a low-intensity segment
+        if i > 0 and stats[i - 1]["rms_mean"] < rms_median * 0.6 and intensity > 0.7:
+            intensity_label = "drop"
+        elif intensity >= 0.7:
+            intensity_label = "high"
+        elif intensity >= 0.4:
+            intensity_label = "medium"
+        else:
+            intensity_label = "low"
+
         out.append(LabeledSegment(
             label=labels[i] or "Main Variation A",
             start=seg.start,
             end=seg.end,
             confidence=confidences[i],
+            intensity=intensity,
+            intensity_label=intensity_label,
         ))
     return out
 

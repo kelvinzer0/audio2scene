@@ -9,7 +9,7 @@
 | Field | Value |
 |---|---|
 | Name | `audio2scene` |
-| Version | 0.3.0 |
+| Version | 0.4.0 |
 | Type | Local CLI + Python library |
 | License | Apache-2.0 |
 | Repo | https://github.com/kelvinzer0/audio2scene |
@@ -26,7 +26,26 @@ Detects the **structural sections** of an instrumental audio file and returns la
 Intro → Main A → Fill In → Main B → Break → Main C → Ending → Fade Out
 ```
 
+Starting **v0.4**, also produces **video editor effect events** (Cut / Flash / Zoom / Glitch / Fade) by mapping beats, onsets, and segment intensity to NLE-ready transitions.
+
 Useful as a **upstream primitive** for: AI video editors, DAW automation, arranger keyboards, music visualization, multimedia research, batch music tagging pipelines.
+
+## Algorithms implemented
+
+| Algorithm | Purpose | Where |
+|---|---|---|
+| **FFT / STFT** | Time-frequency representation (all features derived from this) | `features.py:librosa.stft` |
+| **Beat Tracking** (librosa.beat.beat_track) | Detect beats for cut/transition timing | `features.py` |
+| **Onset Detection** (librosa.onset.onset_detect) | Detect attack starts (kick/snare/cymbal/drop) | `features.py` |
+| **Novelty Detection** (RMS/Flux/MFCC/Loudness novelty) | Detect structural boundaries (intro/verse/chorus/outro) | `segmentation.py` |
+| **Spectral Flux** | Measure spectral change between frames; transition detector | `features.py` |
+| **RMS Energy / Loudness (LUFS approx)** | Volume trajectory; dramatic transition trigger | `features.py` |
+| **MFCC** | Timbre recognition; segment similarity | `features.py` |
+| **Chromagram** | Harmony / chord change detection | `features.py` |
+| **HPSS** (median-filter on STFT) | Harmonic / percussive separation | `features.py` |
+| **ZCR** | Noisiness / brightness | `features.py` |
+| **Intensity Scoring** | Composite 0..1 score per segment (0.6×RMS + 0.4×Flux) | `classifier.py` |
+| **Effect Mapping** | Beat/Onset/Segment → Cut/Flash/Zoom/Glitch/Fade events | `video_editor.py` |
 
 ---
 
@@ -54,6 +73,87 @@ Trigger if **any** of these match:
 | User asks for **genre classification** | audio2scene does not classify genre |
 | User asks for **tempo only** | Run `librosa.beat.tempo` — 5 lines of code, no need for this skill |
 | User asks for **lyrics** | Out of scope |
+
+---
+
+## Video editor pipeline (v0.4+)
+
+The full AI Video Editor pipeline (per industry standard) is now built-in:
+
+```
+FFT/STFT  →  Spectral Flux  →  Beat + Onset Detection
+                                     ↓
+                              Segmentation
+                                     ↓
+                            Intensity Scoring
+                                     ↓
+                          Effect Mapping
+                                     ↓
+   Beat kecil    → Cut
+   Beat kuat     → Flash
+   Build-up      → Zoom
+   Drop          → Glitch
+   Ending        → Fade Out
+   Intro         → Fade In
+   Break         → Hold
+   First segment → Title
+```
+
+### CLI
+
+```bash
+# Get video editor events as JSON
+audio2scene song.mp3 --video-editor -o events.json
+
+# Tune beat / onset strategy
+audio2scene song.mp3 --video-editor --beat-strategy downbeat_only --onset-strategy strong_only
+
+# Skip fade/title events
+audio2scene song.mp3 --video-editor --no-fades --no-title
+```
+
+### Python API
+
+```python
+import audio2scene
+
+segments, feats = audio2scene.detect("song.mp3", return_features=True)
+events = audio2scene.map_video_events(segments, feats)
+
+for ev in events:
+    print(f"{ev.time:.2f}s  {ev.effect:<8} intensity={ev.intensity:.2f}  ({ev.segment_label})")
+
+# Stats
+summary = audio2scene.events_summary(events)
+# {'n_events': 808, 'by_effect': {'Cut': 770, 'Flash': 34, ...}, 'density_per_sec': 3.77}
+```
+
+### VideoEvent schema
+
+```json
+{
+  "time": 1.533,
+  "effect": "Cut",
+  "intensity": 0.366,
+  "segment_label": "Main Variation A",
+  "duration": 0.0,
+  "source": "beat",
+  "metadata": {"beat_index": 0, "beat_strength": 1.3247}
+}
+```
+
+Effect vocabulary:
+
+| Effect | When triggered | Typical NLE action |
+|---|---|---|
+| `Cut` | Beat (small) or onset | Hard cut to next shot |
+| `Flash` | Beat (strong) or strong onset | White flash transition (200-500ms) |
+| `Zoom` | Build-up segment (rising RMS) | Slow zoom-in over segment duration |
+| `Glitch` | Drop (sudden high after low intensity) | Digital glitch effect (1s) |
+| `Hold` | Break segment | Hold on wide shot |
+| `Fade In` | Intro / Fade In segment start | Fade from black (2s) |
+| `Fade Out` | Ending / Fade Out segment start | Fade to black (3s) |
+| `Title` | First segment start + 0.5s | Title card overlay (3s) |
 
 ---
 
@@ -307,8 +407,8 @@ labeled = classify_segments(feats, segs)
 |---|---|---|
 | v0.1 — Intro/Ending/Fade/Silence | ✅ shipped | |
 | v0.2 — Main Variation/Fill In/Break | ✅ shipped | |
-| v0.3 — Confidence/Batch/CLI | ✅ shipped | current |
-| v0.4 — Python package/Streaming | ⏳ planned | |
+| v0.3 — Confidence/Batch/CLI | ✅ shipped | |
+| v0.4 — Onset detection/Intensity scoring/Video editor mapping | ✅ shipped | current |
 | v1.0 — Stable API/docs/benchmark/CI | ⏳ planned | GitHub Actions test workflow still TODO |
 
 ---

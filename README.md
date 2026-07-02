@@ -4,6 +4,10 @@
 
 Audio2Scene analyzes an audio file and produces a timeline of structural labels — Intro, Main Variation A/B/C/D, Fill In, Break, Ending, Fade In, Fade Out — that can be consumed by AI video editors, DAW plugins, arranger keyboards, content creators, and multimedia researchers.
 
+**New in v0.4**: Video editor effect events — `Cut`, `Flash`, `Zoom`, `Glitch`, `Hold`, `Fade In`, `Fade Out`, `Title` — by mapping beats, onsets, and segment intensity to NLE-ready transitions.
+
+**Live demo**: https://kelvinzer0.github.io/audio2scene/
+
 ## Why
 
 Manual labeling of song structure is time-consuming and doesn't scale. Audio2Scene automates it using DSP feature extraction + heuristic segmentation + texture-based classification — all running locally on CPU, no cloud, no API keys.
@@ -39,6 +43,9 @@ audio2scene music.mp3 --csv
 
 # TXT (MM:SS Label)
 audio2scene music.mp3 --txt
+
+# Video editor events (v0.4+)
+audio2scene music.mp3 --video-editor -o events.json
 
 # Write to file
 audio2scene music.mp3 --json -o labels.json
@@ -98,6 +105,51 @@ print(segments_to_json(segments, pretty=True))
 print(segments_to_csv(segments))
 print(segments_to_txt(segments))
 print(segments_to_pretty(segments))
+```
+
+## Video editor pipeline (v0.4+)
+
+The full AI Video Editor pipeline is built-in:
+
+```
+FFT/STFT → Spectral Flux → Beat + Onset Detection → Segmentation → Intensity Scoring → Effect Mapping
+```
+
+Effect mapping rules:
+
+| Effect | When triggered | NLE action |
+|---|---|---|
+| `Cut` | Beat (small) or onset | Hard cut to next shot |
+| `Flash` | Beat (strong) or strong onset | White flash transition (200-500ms) |
+| `Zoom` | Build-up segment (rising RMS) | Slow zoom-in over segment duration |
+| `Glitch` | Drop (sudden high after low intensity) | Digital glitch effect (1s) |
+| `Hold` | Break segment | Hold on wide shot |
+| `Fade In` | Intro / Fade In segment start | Fade from black (2s) |
+| `Fade Out` | Ending / Fade Out segment start | Fade to black (3s) |
+| `Title` | First segment start + 0.5s | Title card overlay (3s) |
+
+### CLI
+
+```bash
+audio2scene song.mp3 --video-editor -o events.json
+audio2scene song.mp3 --video-editor --beat-strategy downbeat_only --onset-strategy strong_only
+audio2scene song.mp3 --video-editor --no-fades --no-title
+```
+
+### Python API
+
+```python
+import audio2scene
+
+segments, feats = audio2scene.detect("song.mp3", return_features=True)
+events = audio2scene.map_video_events(segments, feats)
+
+# Each event: time, effect, intensity, segment_label, duration, source, metadata
+for ev in events:
+    print(f"{ev.time:.2f}s  {ev.effect:<8} intensity={ev.intensity:.2f}  ({ev.segment_label})")
+
+summary = audio2scene.events_summary(events)
+# {'n_events': 808, 'by_effect': {'Cut': 770, 'Flash': 34, ...}, 'density_per_sec': 3.77}
 ```
 
 ## Supported labels

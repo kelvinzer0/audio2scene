@@ -71,6 +71,11 @@ class FeatureMatrix:
     beat_frames: np.ndarray                  # (B,) frame indices of beats
     beat_times: np.ndarray                   # (B,) seconds
 
+    # Onset detection (for video editor transitions)
+    onset_env: np.ndarray                    # (T,) onset strength envelope
+    onset_frames: np.ndarray                 # (O,) frame indices of onsets
+    onset_times: np.ndarray                  # (O,) seconds
+
     @property
     def n_frames(self) -> int:
         return self.rms.shape[0]
@@ -182,8 +187,8 @@ def extract_features(
     silence = rms_db < -50.0
 
     # 11. Beat tracking & tempo (reuse onset strength from STFT)
+    onset_env = librosa.onset.onset_strength(S=stft, sr=sr, hop_length=hop_length)
     try:
-        onset_env = librosa.onset.onset_strength(S=stft, sr=sr, hop_length=hop_length)
         tempo, beat_frames = librosa.beat.beat_track(
             onset_envelope=onset_env,
             sr=sr,
@@ -195,6 +200,22 @@ def extract_features(
         tempo = 0.0
         beat_frames = np.array([], dtype=int)
         beat_times = np.array([])
+
+    # 12. Onset detection — peak picking on onset envelope.
+    # Backtrack=True gives precise onset times (start of attack, not peak).
+    # Used for video editor transitions: cut on every onset, flash on strong onsets.
+    try:
+        onset_frames = librosa.onset.onset_detect(
+            onset_envelope=onset_env,
+            sr=sr,
+            hop_length=hop_length,
+            backtrack=True,
+            wait=int(0.1 * sr / hop_length),  # min 100ms between onsets
+        )
+        onset_times = librosa.frames_to_time(onset_frames, sr=sr, hop_length=hop_length)
+    except Exception:
+        onset_frames = np.array([], dtype=int)
+        onset_times = np.array([])
 
     return FeatureMatrix(
         sr=sr,
@@ -214,6 +235,9 @@ def extract_features(
         tempo=tempo,
         beat_frames=beat_frames,
         beat_times=beat_times,
+        onset_env=onset_env,
+        onset_frames=onset_frames,
+        onset_times=onset_times,
     )
 
 

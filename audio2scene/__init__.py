@@ -33,13 +33,20 @@ from .timeline import (
     segments_to_pretty,
     segments_to_txt,
 )
+from .video_editor import (
+    VideoEvent,
+    events_to_json,
+    events_summary,
+    map_video_events,
+)
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 __all__ = [
     "LabeledSegment",
     "FeatureMatrix",
     "Segment",
+    "VideoEvent",
     "detect",
     "extract_features",
     "load_audio",
@@ -48,6 +55,9 @@ __all__ = [
     "segments_to_csv",
     "segments_to_txt",
     "segments_to_pretty",
+    "map_video_events",
+    "events_to_json",
+    "events_summary",
     "__version__",
 ]
 
