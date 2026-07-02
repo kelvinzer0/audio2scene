@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>audio2scene — TikTok Viral Sounds Analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg-2: #0e0e16;
+    --card: #15151f;
+    --card-2: #1b1b27;
+    --border: #26263a;
+    --border-2: #2f2f48;
+    --text: #e8e8f0;
+    --text-muted: #8b8ba3;
+    --text-dim: #5d5d75;
+    --accent: #a855f7;
+    --accent-2: #22d3ee;
+
+    --c-intro: #60a5fa;
+    --c-fadein: #22d3ee;
+    --c-mva: #a855f7;
+    --c-mvb: #ec4899;
+    --c-mvc: #fb923c;
+    --c-mvd: #facc15;
+    --c-fillin: #4ade80;
+    --c-break: #94a3b8;
+    --c-ending: #818cf8;
+    --c-fadeout: #2dd4bf;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+  }
+
+  body {
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(168, 85, 247, 0.12), transparent 60%),
+      radial-gradient(1000px 500px at 100% 0%, rgba(34, 211, 238, 0.08), transparent 55%),
+      radial-gradient(800px 600px at 50% 120%, rgba(236, 72, 153, 0.06), transparent 60%),
+      var(--bg);
+    background-attachment: fixed;
+  }
+
+  a { color: var(--accent-2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .wrap {
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* ===== Header ===== */
+  header.page-head {
+    padding: 16px 0 32px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .brand-mark {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--c-mva), var(--c-mvb));
+    display: grid; place-items: center;
+    box-shadow: 0 6px 24px rgba(168, 85, 247, 0.45);
+    flex-shrink: 0;
+  }
+  .brand-mark svg { width: 22px; height: 22px; }
+  .brand-name {
+    font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+  }
+  .brand-name b { color: var(--text); font-weight: 700; }
+
+  h1.title {
+    font-size: clamp(28px, 4vw, 46px);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    background: linear-gradient(120deg, #ffffff 0%, #c4b5fd 50%, #67e8f9 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 12px;
+  }
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 15px;
+    margin-bottom: 16px;
+    display: flex; flex-wrap: wrap; gap: 8px 14px;
+    align-items: center;
+  }
+  .subtitle .dot { color: var(--border-2); }
+  .subtitle code {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 13px;
+    color: var(--accent-2);
+    background: rgba(34, 211, 238, 0.08);
+    padding: 1px 7px;
+    border-radius: 4px;
+    border: 1px solid rgba(34, 211, 238, 0.2);
+  }
+  .desc {
+    color: var(--text-muted);
+    font-size: 14.5px;
+    max-width: 920px;
+    line-height: 1.65;
+  }
+  .desc b { color: var(--text); font-weight: 600; }
+
+  .file-note {
+    margin-top: 14px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    padding: 8px 12px;
+    background: rgba(251, 191, 36, 0.05);
+    border: 1px solid rgba(251, 191, 36, 0.18);
+    border-radius: 6px;
+    display: inline-block;
+  }
+  .file-note code {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.1);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* ===== KPI Cards ===== */
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 480px) { .kpis { grid-template-columns: 1fr; } }
+
+  .kpi {
+    background: linear-gradient(160deg, var(--card) 0%, var(--card-2) 100%);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.18s ease, border-color 0.18s ease;
+  }
+  .kpi::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(400px 80px at 100% 0%, var(--glow, rgba(168,85,247,0.18)), transparent 70%);
+    pointer-events: none;
+  }
+  .kpi:hover { transform: translateY(-2px); border-color: var(--border-2); }
+  .kpi .label {
+    font-size: 11.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .kpi .ico { width: 14px; height: 14px; color: var(--glow-solid, var(--accent)); }
+  .kpi .value {
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--text);
+  }
+  .kpi .unit {
+    font-size: 14px;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-left: 4px;
+  }
+  .kpi .sub {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 8px;
+  }
+
+  /* ===== Legend ===== */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    align-items: center;
+    padding: 14px 18px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 18px;
+  }
+  .legend-title {
+    font-size: 11.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin-right: 6px;
+  }
+  .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    cursor: default;
+    transition: color 0.15s ease;
+  }
+  .legend-item:hover { color: var(--text); }
+  .legend-swatch {
+    width: 12px; height: 12px;
+    border-radius: 3px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.08) inset;
+  }
+
+  /* ===== Controls ===== */
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 22px;
+  }
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 220px;
+    max-width: 420px;
+  }
+  .search-wrap svg {
+    position: absolute;
+    left: 12px; top: 50%;
+    transform: translateY(-50%);
+    width: 16px; height: 16px;
+    color: var(--text-dim);
+    pointer-events: none;
+  }
+  .search {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 14px 10px 38px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .search:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: var(--card-2);
+  }
+  .search::placeholder { color: var(--text-dim); }
+
+  .sort-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .sort {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 14px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+  }
+  .sort:hover { border-color: var(--border-2); }
+  .sort:focus { outline: none; border-color: var(--accent); }
+
+  .result-count {
+    margin-left: auto;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .result-count b { color: var(--text); font-weight: 600; }
+
+  /* ===== Songs Grid ===== */
+  .songs {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+  @media (min-width: 1024px) {
+    .songs { grid-template-columns: 1fr 1fr; }
+  }
+
+  .card {
+    background: linear-gradient(170deg, var(--card) 0%, var(--card-2) 100%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px 22px 18px;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .card:hover {
+    border-color: var(--border-2);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+  }
+
+  .card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .card-title {
+    font-size: 18.5px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    line-height: 1.25;
+  }
+  .card-proc {
+    font-size: 11.5px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    background: rgba(255,255,255,0.03);
+    padding: 3px 8px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 9px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+  .badge svg { width: 11px; height: 11px; opacity: 0.8; }
+  .badge.tempo { color: #c4b5fd; border-color: rgba(168,85,247,0.25); background: rgba(168,85,247,0.06); }
+  .badge.dur   { color: #67e8f9; border-color: rgba(34,211,238,0.22); background: rgba(34,211,238,0.05); }
+  .badge.seg   { color: #fda4af; border-color: rgba(236,72,153,0.22); background: rgba(236,72,153,0.05); }
+  .badge.beat  { color: #fcd34d; border-color: rgba(250,204,21,0.22); background: rgba(250,204,21,0.05); }
+
+  audio.song-audio {
+    width: 100%;
+    height: 38px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+  }
+  audio.song-audio::-webkit-media-controls-panel {
+    background: #1a1a26;
+  }
+
+  /* ===== Timeline ===== */
+  .timeline-wrap {
+    position: relative;
+    margin-top: 4px;
+  }
+  .timeline-svg {
+    width: 100%;
+    height: 110px;
+    display: block;
+    border-radius: 8px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.015) 0%, rgba(0,0,0,0.2) 100%),
+      #0c0c14;
+    border: 1px solid var(--border);
+    cursor: crosshair;
+  }
+  .timeline-svg .seg-group { cursor: pointer; transition: opacity 0.12s ease; }
+  .timeline-svg .seg-group:hover rect { filter: brightness(1.18); }
+  .timeline-svg .seg-group.active rect {
+    filter: brightness(1.25) drop-shadow(0 0 6px rgba(255,255,255,0.5));
+    stroke: #fff; stroke-width: 1;
+  }
+  .timeline-svg .playhead {
+    pointer-events: none;
+    stroke: #ffffff;
+    stroke-width: 1.5;
+    filter: drop-shadow(0 0 4px rgba(255,255,255,0.85));
+  }
+  .timeline-svg .playhead-head {
+    pointer-events: none;
+    fill: #fff;
+    filter: drop-shadow(0 0 4px rgba(255,255,255,0.85));
+  }
+  .timeline-svg .wave-rect { transition: opacity 0.12s ease; }
+
+  .time-axis {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  /* ===== Tooltip ===== */
+  .tooltip {
+    position: fixed;
+    z-index: 9999;
+    pointer-events: none;
+    background: rgba(20, 20, 30, 0.96);
+    border: 1px solid var(--border-2);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--text);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.6);
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.12s ease, transform 0.12s ease;
+    min-width: 160px;
+    max-width: 280px;
+  }
+  .tooltip.show { opacity: 1; transform: translateY(0); }
+  .tooltip .tt-label {
+    font-weight: 700;
+    font-size: 13px;
+    margin-bottom: 6px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .tooltip .tt-swatch {
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    display: inline-block;
+  }
+  .tooltip .tt-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    color: var(--text-muted);
+    font-size: 11.5px;
+    line-height: 1.5;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .tooltip .tt-row b { color: var(--text); font-weight: 600; }
+  .tooltip .tt-conf {
+    margin-top: 6px;
+    height: 4px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .tooltip .tt-conf-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #f43f5e, #facc15, #4ade80);
+    border-radius: 2px;
+  }
+
+  /* ===== Loading / Error ===== */
+  .state {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--text-muted);
+  }
+  .state .spinner {
+    width: 32px; height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    margin: 0 auto 16px;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .state.error { color: #fda4af; }
+  .state.error .spinner { border-top-color: #f43f5e; animation: none; }
+  .state code {
+    display: inline-block;
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 13px;
+    color: #fbbf24;
+    background: rgba(251,191,36,0.08);
+    padding: 6px 10px;
+    border-radius: 5px;
+    border: 1px solid rgba(251,191,36,0.2);
+  }
+
+  /* ===== Footer ===== */
+  footer.page-foot {
+    margin-top: 60px;
+    padding-top: 28px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  footer.page-foot a {
+    color: var(--accent-2);
+    font-weight: 600;
+  }
+  footer.page-foot .repo-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    margin-bottom: 10px;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  footer.page-foot .repo-link:hover {
+    border-color: var(--accent);
+    background: var(--card-2);
+    text-decoration: none;
+  }
+  footer.page-foot .repo-link svg { width: 15px; height: 15px; }
+  footer.page-foot .ver {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    color: var(--text-muted);
+  }
+
+  /* small screen tweaks */
+  @media (max-width: 640px) {
+    .wrap { padding: 24px 14px 60px; }
+    .card { padding: 18px 16px 14px; }
+    .controls { flex-direction: column; align-items: stretch; }
+    .sort-wrap { justify-content: space-between; }
+    .result-count { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ HEADER ============ -->
+  <header class="page-head">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12h2l2-7 4 14 3-10 2 5h5"/>
+        </svg>
+      </div>
+      <div class="brand-name"><b>audio2scene</b> // structure detection</div>
+    </div>
+
+    <h1 class="title">audio2scene — TikTok Viral Sounds Analysis</h1>
+    <div class="subtitle">
+      <span><code>v0.3.0</code></span>
+      <span class="dot">·</span>
+      <span>11 songs analyzed</span>
+      <span class="dot">·</span>
+      <span>641 segments detected</span>
+      <span class="dot">·</span>
+      <span>hop_length=1024, min_segment=5.0s</span>
+    </div>
+    <p class="desc">
+      <b>audio2scene</b> detects the structural sections of instrumental music — <b>Intro</b>,
+      <b>Fade In</b>, <b>Main Variation A / B / C / D</b>, <b>Fill In</b>, <b>Break</b>, <b>Ending</b>,
+      and <b>Fade Out</b> — by combining spectral features, beat tracking, and self-similarity matrices.
+      It runs <b>100% offline on the CPU</b> using <code style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#c4b5fd;">librosa</code> + <code style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#c4b5fd;">numpy</code>,
+      with no network calls. This dashboard visualizes its output on 11 viral TikTok sounds
+      pulled from archive.org collections — each card below shows the detected structure as an
+      interactive timeline synced to the audio player.
+    </p>
+    <div class="file-note">
+      ⚠ If data doesn't load below, you opened this via <code>file://</code> and the browser is
+      blocking <code>fetch()</code>. Run a local server:
+      <code>python3 -m http.server 8000</code> in this folder, then open
+      <code>http://localhost:8000</code>.
+    </div>
+  </header>
+
+  <!-- ============ KPI CARDS ============ -->
+  <section class="kpis" id="kpis">
+    <div class="kpi" style="--glow:rgba(96,165,250,0.18); --glow-solid:#60a5fa;">
+      <div class="label">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        Songs Analyzed
+      </div>
+      <div><span class="value">11</span></div>
+      <div class="sub">viral TikTok sounds</div>
+    </div>
+    <div class="kpi" style="--glow:rgba(236,72,153,0.18); --glow-solid:#ec4899;">
+      <div class="label">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Segments Detected
+      </div>
+      <div><span class="value">641</span></div>
+      <div class="sub">avg 58 per song</div>
+    </div>
+    <div class="kpi" style="--glow:rgba(74,222,128,0.18); --glow-solid:#4ade80;">
+      <div class="label">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Avg Processing Time
+      </div>
+      <div><span class="value">7.5</span><span class="unit">s / song</span></div>
+      <div class="sub">CPU-only, 100% offline</div>
+    </div>
+    <div class="kpi" style="--glow:rgba(250,204,21,0.18); --glow-solid:#facc15;">
+      <div class="label">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        Avg Tempo
+      </div>
+      <div><span class="value">125</span><span class="unit">BPM</span></div>
+      <div class="sub">range 107.7 – 143.6</div>
+    </div>
+  </section>
+
+  <!-- ============ LEGEND ============ -->
+  <section class="legend" id="legend">
+    <span class="legend-title">Label Legend</span>
+    <!-- legend items injected by JS -->
+  </section>
+
+  <!-- ============ CONTROLS ============ -->
+  <section class="controls">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input class="search" id="search" type="search" placeholder="Filter songs by title…" autocomplete="off" />
+    </div>
+    <div class="sort-wrap">
+      <label for="sort">Sort by</label>
+      <select class="sort" id="sort">
+        <option value="title">Title (A→Z)</option>
+        <option value="duration-desc">Duration (long→short)</option>
+        <option value="segments-desc"># Segments (most→least)</option>
+        <option value="tempo-desc">Tempo (fast→slow)</option>
+        <option value="proc-desc">Processing time (slow→fast)</option>
+      </select>
+    </div>
+    <div class="result-count" id="result-count"></div>
+  </section>
+
+  <!-- ============ SONGS GRID ============ -->
+  <section class="songs" id="songs">
+    <div class="state" id="state-loading">
+      <div class="spinner"></div>
+      <div>Loading analysis data…</div>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="page-foot">
+    <a class="repo-link" href="https://github.com/kelvinzer0/audio2scene" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56 0-.27-.01-1.16-.02-2.11-3.2.7-3.88-1.36-3.88-1.36-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 5.8 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.06.78 2.14 0 1.55-.01 2.8-.01 3.18 0 .31.21.68.8.56A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z"/></svg>
+      <span>github.com/kelvinzer0/audio2scene</span>
+    </a>
+    <div>
+      Powered by <b>audio2scene</b> <span class="ver">v0.3.0</span> · Audio from
+      <a href="https://archive.org/details/tiktok-songs-2024-tiktok-viral-songs-tiktok-music-2024" target="_blank" rel="noopener">archive.org TikTok collections</a>
+    </div>
+  </footer>
+</div>
+
+<!-- Floating tooltip -->
+<div class="tooltip" id="tooltip" role="tooltip" aria-hidden="true"></div>
+
+<script>
+/* ============================================================
+   audio2scene preview dashboard — vanilla JS
+   ============================================================ */
+
+const LABEL_COLORS = {
+  'Intro':             '#60a5fa',
+  'Fade In':           '#22d3ee',
+  'Main Variation A':  '#a855f7',
+  'Main Variation B':  '#ec4899',
+  'Main Variation C':  '#fb923c',
+  'Main Variation D':  '#facc15',
+  'Fill In':           '#4ade80',
+  'Break':             '#94a3b8',
+  'Ending':            '#818cf8',
+  'Fade Out':          '#2dd4bf',
+};
+
+const LABEL_ABBR = {
+  'Intro': 'I',
+  'Fade In': 'FI',
+  'Main Variation A': 'A',
+  'Main Variation B': 'B',
+  'Main Variation C': 'C',
+  'Main Variation D': 'D',
+  'Fill In': 'FL',
+  'Break': 'BR',
+  'Ending': 'E',
+  'Fade Out': 'FO',
+};
+
+const LABEL_ORDER = [
+  'Intro','Fade In','Main Variation A','Main Variation B',
+  'Main Variation C','Main Variation D','Fill In','Break','Ending','Fade Out'
+];
+
+/* ---------- Helpers ---------- */
+function fmtTime(s) {
+  if (!isFinite(s) || s < 0) s = 0;
+  s = Math.floor(s);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const mm = h > 0 ? m.toString().padStart(2, '0') : m.toString();
+  const ss = sec.toString().padStart(2, '0');
+  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
+function fmtDur(s) {
+  // MM:SS or H:MM:SS for long mixes
+  return fmtTime(s);
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, ch => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[ch]));
+}
+
+function hexToRgb(hex) {
+  const m = hex.replace('#','');
+  return {
+    r: parseInt(m.slice(0,2), 16),
+    g: parseInt(m.slice(2,4), 16),
+    b: parseInt(m.slice(4,6), 16),
+  };
+}
+
+function contrastColor(hex) {
+  const {r,g,b} = hexToRgb(hex);
+  const lum = (0.299*r + 0.587*g + 0.114*b) / 255;
+  return lum > 0.62 ? '#0a0a0f' : '#ffffff';
+}
+
+function escapeXml(s) {
+  return escapeHtml(s);
+}
+
+/* ---------- State ---------- */
+let DATA = null;
+let visibleSongs = [];
+
+/* ---------- Bootstrap ---------- */
+async function loadData() {
+  // Prefer fetch; fall back to inline window.ANALYSIS_DATA if present.
+  if (typeof window.ANALYSIS_DATA !== 'undefined' && window.ANALYSIS_DATA) {
+    return window.ANALYSIS_DATA;
+  }
+  try {
+    const resp = await fetch('data/analysis.json', { cache: 'no-cache' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    return await resp.json();
+  } catch (err) {
+    // Try alternate path
+    try {
+      const resp2 = await fetch('./data/analysis.json', { cache: 'no-cache' });
+      if (!resp2.ok) throw new Error('HTTP ' + resp2.status);
+      return await resp2.json();
+    } catch (err2) {
+      throw err;
+    }
+  }
+}
+
+/* ---------- Legend ---------- */
+function renderLegend() {
+  const el = document.getElementById('legend');
+  const frag = document.createDocumentFragment();
+  LABEL_ORDER.forEach(label => {
+    const item = document.createElement('span');
+    item.className = 'legend-item';
+    item.innerHTML =
+      `<span class="legend-swatch" style="background:${LABEL_COLORS[label]}"></span>` +
+      escapeHtml(label);
+    frag.appendChild(item);
+  });
+  el.appendChild(frag);
+}
+
+/* ---------- SVG: Waveform ---------- */
+function buildWaveformSvg(waveform) {
+  const W = 1000;
+  const H = 50;          // waveform area height
+  const barCount = waveform.length;
+  const barSlot = W / barCount;
+  const barW = Math.max(0.6, barSlot * 0.72);
+
+  let bars = '';
+  for (let i = 0; i < barCount; i++) {
+    const peak = Math.max(0.02, waveform[i] || 0);
+    const h = Math.max(1, peak * (H - 4));
+    const x = i * barSlot + (barSlot - barW) / 2;
+    const y = (H - h) / 2 + 2;
+    bars +=
+      `<rect class="wave-rect" x="${x.toFixed(2)}" y="${y.toFixed(2)}" ` +
+      `width="${barW.toFixed(2)}" height="${h.toFixed(2)}" rx="0.6" fill="url(#waveGrad)"/>`;
+  }
+  return bars;
+}
+
+/* ---------- SVG: Segments ---------- */
+function buildSegmentsSvg(segments, duration) {
+  const W = 1000;
+  const segY = 62;
+  const segH = 30;
+  let out = '';
+  segments.forEach((seg, i) => {
+    const x = (seg.start / duration) * W;
+    const w = Math.max(1.2, (seg.duration / duration) * W);
+    const color = LABEL_COLORS[seg.label] || '#888888';
+    const textColor = contrastColor(color);
+    let label = '';
+    if (w > 95)       label = seg.label;
+    else if (w > 32)  label = seg.label.replace('Main Variation ', 'Var ');
+    else if (w > 16)  label = LABEL_ABBR[seg.label] || '';
+    else              label = '';
+
+    const fontSize = w > 95 ? 9.5 : (w > 32 ? 9 : 8);
+    const textX = x + w / 2;
+
+    out +=
+      `<g class="seg-group" data-i="${i}" data-label="${escapeXml(seg.label)}" ` +
+      `data-start="${seg.start}" data-end="${seg.end}" data-dur="${seg.duration}" data-conf="${seg.confidence}">` +
+      `<rect x="${x.toFixed(2)}" y="${segY}" width="${w.toFixed(2)}" height="${segH}" ` +
+      `rx="2.5" fill="${color}" stroke="rgba(0,0,0,0.35)" stroke-width="0.5" />`;
+    if (label) {
+      out +=
+        `<text x="${textX.toFixed(2)}" y="${(segY + segH/2 + 3).toFixed(2)}" ` +
+        `text-anchor="middle" font-size="${fontSize}" font-weight="700" ` +
+        `font-family="Inter, system-ui, sans-serif" fill="${textColor}" ` +
+        `style="pointer-events:none; user-select:none;">${escapeXml(label)}</text>`;
+    }
+    out += `</g>`;
+  });
+  return out;
+}
+
+/* ---------- Card builder ---------- */
+function buildCard(song, idx) {
+  const audioSrc = song.path || ('songs/' + song.file);
+  const card = document.createElement('article');
+  card.className = 'card';
+  card.dataset.id = String(idx);
+  card.dataset.title = song.title.toLowerCase();
+  card.dataset.duration = String(song.duration);
+  card.dataset.segments = String(song.n_segments);
+  card.dataset.tempo = String(song.tempo);
+  card.dataset.proc = String(song.processing_time_sec);
+  card.style.animationDelay = (Math.min(idx, 11) * 40) + 'ms';
+
+  const waveSvg = buildWaveformSvg(song.waveform || []);
+  const segSvg = buildSegmentsSvg(song.segments, song.duration);
+
+  card.innerHTML = `
+    <div class="card-head">
+      <div class="card-title">${escapeHtml(song.title)}</div>
+      <div class="card-proc" title="Processing time">proc ${song.processing_time_sec.toFixed(2)}s</div>
+    </div>
+    <div class="badges">
+      <span class="badge dur"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${fmtDur(song.duration)}</span>
+      <span class="badge tempo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>${song.tempo.toFixed(1)} BPM</span>
+      <span class="badge seg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>${song.n_segments} segs</span>
+      <span class="badge beat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>${song.n_beats} beats</span>
+    </div>
+    <audio class="song-audio" data-id="${idx}" data-duration="${song.duration}" controls preload="none" src="${escapeHtml(audioSrc)}"></audio>
+    <div class="timeline-wrap">
+      <svg class="timeline-svg" viewBox="0 0 1000 100" preserveAspectRatio="none" data-id="${idx}" role="img" aria-label="Structure timeline for ${escapeHtml(song.title)}">
+        <defs>
+          <linearGradient id="waveGrad-${idx}" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%"  stop-color="#60a5fa"/>
+            <stop offset="50%" stop-color="#a855f7"/>
+            <stop offset="100%" stop-color="#ec4899"/>
+          </linearGradient>
+        </defs>
+        <!-- background grid lines -->
+        <g opacity="0.5">
+          <line x1="0" y1="50" x2="1000" y2="50" stroke="#1f1f2e" stroke-width="0.5" stroke-dasharray="2 4"/>
+        </g>
+        <!-- waveform -->
+        <g transform="translate(0,0)">${waveSvg.replace(/url\(#waveGrad\)/g, `url(#waveGrad-${idx})`)}</g>
+        <!-- segment bar -->
+        <g>${segSvg}</g>
+        <!-- playhead -->
+        <line class="playhead" data-id="${idx}" x1="0" y1="0" x2="0" y2="100" />
+        <polygon class="playhead-head" data-id="${idx}" points="-4,0 4,0 0,5" transform="translate(0,0)" />
+      </svg>
+      <div class="time-axis">
+        <span>0:00</span>
+        <span>${fmtDur(song.duration / 2)}</span>
+        <span>${fmtDur(song.duration)}</span>
+      </div>
+    </div>
+  `;
+  return card;
+}
+
+/* ---------- Render songs grid ---------- */
+function renderSongs(songs) {
+  const container = document.getElementById('songs');
+  container.innerHTML = '';
+  if (songs.length === 0) {
+    container.innerHTML =
+      `<div class="state"><div style="font-size:18px;color:var(--text-muted);">No songs match your filter.</div></div>`;
+    updateResultCount(0);
+    return;
+  }
+  const frag = document.createDocumentFragment();
+  songs.forEach((song, i) => frag.appendChild(buildCard(song, song._origIdx)));
+  container.appendChild(frag);
+  updateResultCount(songs.length);
+  wireUpCards();
+}
+
+function updateResultCount(n) {
+  const el = document.getElementById('result-count');
+  if (n === 0) el.innerHTML = '';
+  else el.innerHTML = `Showing <b>${n}</b> of <b>${DATA.songs.length}</b>`;
+}
+
+/* ---------- Filtering & Sorting ---------- */
+function applyFilterSort() {
+  if (!DATA) return;
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const sortVal = document.getElementById('sort').value;
+
+  let list = DATA.songs.map((s, i) => ({ ...s, _origIdx: i }));
+
+  if (q) {
+    list = list.filter(s => s.title.toLowerCase().includes(q));
+  }
+
+  const [field, dir] = sortVal.split('-');
+  list.sort((a, b) => {
+    let av, bv;
+    switch (field) {
+      case 'title':      av = a.title.toLowerCase(); bv = b.title.toLowerCase(); break;
+      case 'duration':   av = a.duration;            bv = b.duration;            break;
+      case 'segments':   av = a.n_segments;          bv = b.n_segments;          break;
+      case 'tempo':      av = a.tempo;               bv = b.tempo;               break;
+      case 'proc':       av = a.processing_time_sec; bv = b.processing_time_sec; break;
+      default:           av = 0; bv = 0;
+    }
+    if (av < bv) return dir === 'desc' ? 1 : -1;
+    if (av > bv) return dir === 'desc' ? -1 : 1;
+    return 0;
+  });
+
+  visibleSongs = list;
+  renderSongs(list);
+}
+
+/* ---------- Tooltip ---------- */
+const tooltip = document.getElementById('tooltip');
+let tooltipTarget = null;
+
+function showTooltip(segGroup, e) {
+  const label   = segGroup.dataset.label;
+  const start   = parseFloat(segGroup.dataset.start);
+  const end     = parseFloat(segGroup.dataset.end);
+  const dur     = parseFloat(segGroup.dataset.dur);
+  const conf    = parseFloat(segGroup.dataset.conf);
+  const color   = LABEL_COLORS[label] || '#888';
+
+  tooltip.innerHTML =
+    `<div class="tt-label"><span class="tt-swatch" style="background:${color}"></span>${escapeHtml(label)}</div>` +
+    `<div class="tt-row"><span>Start</span><b>${fmtTime(start)}</b></div>` +
+    `<div class="tt-row"><span>End</span><b>${fmtTime(end)}</b></div>` +
+    `<div class="tt-row"><span>Duration</span><b>${dur.toFixed(2)}s</b></div>` +
+    `<div class="tt-row"><span>Confidence</span><b>${(conf * 100).toFixed(0)}%</b></div>` +
+    `<div class="tt-conf"><div class="tt-conf-bar" style="width:${(conf*100).toFixed(0)}%"></div></div>`;
+
+  tooltip.classList.add('show');
+  moveTooltip(e);
+}
+
+function moveTooltip(e) {
+  const pad = 14;
+  const tw = tooltip.offsetWidth;
+  const th = tooltip.offsetHeight;
+  let x = e.clientX + pad;
+  let y = e.clientY + pad;
+  if (x + tw > window.innerWidth - 8)  x = e.clientX - tw - pad;
+  if (y + th > window.innerHeight - 8) y = e.clientY - th - pad;
+  tooltip.style.left = x + 'px';
+  tooltip.style.top  = y + 'px';
+}
+
+function hideTooltip() {
+  tooltip.classList.remove('show');
+  tooltipTarget = null;
+}
+
+/* ---------- Wire up card interactivity ---------- */
+function wireUpCards() {
+  const cards = document.querySelectorAll('.card');
+  cards.forEach(card => {
+    const audio = card.querySelector('audio.song-audio');
+    const svg   = card.querySelector('svg.timeline-svg');
+    if (!audio || !svg) return;
+
+    const playhead     = svg.querySelector('.playhead');
+    const playheadHead = svg.querySelector('.playhead-head');
+    const segGroups    = svg.querySelectorAll('.seg-group');
+    const duration     = parseFloat(audio.dataset.duration);
+
+    // Click on segment → seek audio
+    segGroups.forEach(g => {
+      g.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const start = parseFloat(g.dataset.start);
+        try { audio.currentTime = start; audio.play().catch(()=>{}); } catch(_) {}
+      });
+
+      g.addEventListener('mouseenter', (e) => {
+        tooltipTarget = g;
+        showTooltip(g, e);
+      });
+      g.addEventListener('mousemove', moveTooltip);
+      g.addEventListener('mouseleave', hideTooltip);
+    });
+
+    // Click on SVG background (waveform area) → seek to that time
+    svg.addEventListener('click', (e) => {
+      if (e.target.closest('.seg-group')) return;
+      const rect = svg.getBoundingClientRect();
+      const ratio = (e.clientX - rect.left) / rect.width;
+      const t = Math.max(0, Math.min(duration, ratio * duration));
+      try { audio.currentTime = t; audio.play().catch(()=>{}); } catch(_) {}
+    });
+
+    // Sync playhead on timeupdate (backup to rAF loop below)
+    audio.addEventListener('timeupdate', () => updatePlayhead(audio, playhead, playheadHead, duration, segGroups));
+    audio.addEventListener('play',      () => updatePlayhead(audio, playhead, playheadHead, duration, segGroups));
+    audio.addEventListener('pause',     () => updatePlayhead(audio, playhead, playheadHead, duration, segGroups));
+    audio.addEventListener('seeked',    () => updatePlayhead(audio, playhead, playheadHead, duration, segGroups));
+    audio.addEventListener('ended',     () => updatePlayhead(audio, playhead, playheadHead, duration, segGroups));
+
+    // Initial state
+    updatePlayhead(audio, playhead, playheadHead, duration, segGroups);
+  });
+}
+
+function updatePlayhead(audio, playhead, playheadHead, duration, segGroups) {
+  if (!playhead) return;
+  const t = audio.currentTime || 0;
+  const x = duration > 0 ? (t / duration) * 1000 : 0;
+  playhead.setAttribute('x1', x);
+  playhead.setAttribute('x2', x);
+  if (playheadHead) {
+    playheadHead.setAttribute('transform', `translate(${x},0)`);
+  }
+
+  // Highlight active segment
+  let activeIdx = -1;
+  for (let i = 0; i < segGroups.length; i++) {
+    const g = segGroups[i];
+    const s = parseFloat(g.dataset.start);
+    const e = parseFloat(g.dataset.end);
+    if (t >= s && t < e) { activeIdx = i; break; }
+  }
+  segGroups.forEach((g, i) => {
+    if (i === activeIdx) g.classList.add('active');
+    else g.classList.remove('active');
+  });
+}
+
+/* ---------- Smooth playhead animation via rAF ---------- */
+function rafLoop() {
+  document.querySelectorAll('audio.song-audio').forEach(audio => {
+    if (audio.paused) return;
+    const card = audio.closest('.card');
+    if (!card) return;
+    const svg = card.querySelector('svg.timeline-svg');
+    if (!svg) return;
+    const playhead     = svg.querySelector('.playhead');
+    const playheadHead = svg.querySelector('.playhead-head');
+    const segGroups    = svg.querySelectorAll('.seg-group');
+    const duration     = parseFloat(audio.dataset.duration);
+    updatePlayhead(audio, playhead, playheadHead, duration, segGroups);
+  });
+  requestAnimationFrame(rafLoop);
+}
+requestAnimationFrame(rafLoop);
+
+/* ---------- Init ---------- */
+async function init() {
+  renderLegend();
+  try {
+    DATA = await loadData();
+    if (!DATA || !DATA.songs || !Array.isArray(DATA.songs)) {
+      throw new Error('Malformed analysis data');
+    }
+    applyFilterSort();
+    const loading = document.getElementById('state-loading');
+    if (loading) loading.remove();
+  } catch (err) {
+    const container = document.getElementById('songs');
+    container.innerHTML =
+      `<div class="state error">
+        <div class="spinner"></div>
+        <div style="font-size:16px;font-weight:600;margin-bottom:6px;">Couldn't load analysis.json</div>
+        <div>${escapeHtml(err.message || String(err))}</div>
+        <div style="margin-top:14px;">Run a local server in this folder:</div>
+        <code>python3 -m http.server 8000</code>
+        <div style="margin-top:8px;">Then open <code style="display:inline;">http://localhost:8000</code></div>
+      </div>`;
+    console.error('[audio2scene preview] loadData failed:', err);
+  }
+}
+
+/* ---------- Event wiring ---------- */
+document.getElementById('search').addEventListener('input', applyFilterSort);
+document.getElementById('sort').addEventListener('change', applyFilterSort);
+
+// Hide tooltip on scroll/escape
+document.addEventListener('scroll', hideTooltip, { passive: true });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideTooltip(); });
+window.addEventListener('blur', hideTooltip);
+
+init();
+</script>
+</body>
+</html>
