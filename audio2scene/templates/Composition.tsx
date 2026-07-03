@@ -8,11 +8,16 @@ import {
   useCurrentFrame,
   useVideoConfig,
   Easing,
+  random,
 } from "remotion";
 import { Video } from "@remotion/media";
 import { TransitionSeries, linearTiming } from "@remotion/transitions";
 import type { TransitionPresentation } from "@remotion/transitions";
 import type { TransitionPresentationComponentProps } from "@remotion/transitions";
+import { loadFont } from "@remotion/google-fonts/Inter";
+
+// Load font once at module level
+const { fontFamily: LOADED_FONT } = loadFont();
 
 // ─── Typography components (from remocn registry) ───────────────────────────
 import { SoftBlurIn } from "./components/remocn/soft-blur-in";
@@ -81,8 +86,13 @@ interface Timeline {
 
 const TYPOGRAPHY_PROPS = {
   fontSize: 96,
-  color: "#ffffff",
+  color: "#ffffff",           // white text for dark background
   fontWeight: 800,
+  // Dark theme overrides for highlight components
+  baseColor: "#ffffff",       // base text color (for marker/inline highlight)
+  highlightedTextColor: "#0a0a0f",  // dark text on highlighted (marker) area
+  markerColor: "#facc15",     // yellow marker
+  highlightColor: "#22d3ee",  // cyan highlight for inline
 };
 
 function renderTypography(effect: string, text: string, fontFamily: string) {
@@ -225,17 +235,34 @@ function getTransition(name: string): TransitionPresentation<Record<string, unkn
 
 // ─── Background renderer (video / image / gradient) ─────────────────────────
 
-const Background: React.FC<{ slice: SceneSlice }> = ({ slice }) => {
+// ─── Enhanced Ken Burns image animation (4 patterns) ────────────────────────
+
+const KEN_BURNS_PATTERNS = [
+  // Pattern 0: Zoom in + pan right
+  (p: number) => ({ scale: 1.15 + p * 0.2, x: p * 40 - 20, y: 0 }),
+  // Pattern 1: Zoom out + pan left
+  (p: number) => ({ scale: 1.4 - p * 0.2, x: -(p * 40 - 20), y: 0 }),
+  // Pattern 2: Zoom in + pan up
+  (p: number) => ({ scale: 1.15 + p * 0.2, x: 0, y: -(p * 30 - 15) }),
+  // Pattern 3: Zoom in + diagonal pan
+  (p: number) => ({ scale: 1.2 + p * 0.15, x: p * 30 - 15, y: p * 20 - 10 }),
+];
+
+const Background: React.FC<{ slice: SceneSlice; sceneIndex?: number }> = ({ slice, sceneIndex = 0 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  if (slice.video) {
+  // Alternate: even scenes → video, odd scenes → image (if both available)
+  const useVideo = sceneIndex % 2 === 0;
+
+  if (slice.video && useVideo) {
     return (
-      <AbsoluteFill>
+      <AbsoluteFill style={{ overflow: "hidden" }}>
         <Video
           src={staticFile(`videos/${slice.video}`)}
-          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          style={{ width: "100%", height: "100%", objectFit: "cover", scale: "1.1" }}
           muted
+          loop
         />
         <AbsoluteFill style={{ backgroundColor: "rgba(0,0,0,0.55)" }} />
       </AbsoluteFill>
@@ -243,37 +270,55 @@ const Background: React.FC<{ slice: SceneSlice }> = ({ slice }) => {
   }
 
   if (slice.image) {
-    // Ken Burns: slow zoom + pan
+    // Enhanced Ken Burns: pick pattern based on scene index
     const sliceDuration = slice.end - slice.start;
     const progress = (frame / fps) / Math.max(0.1, sliceDuration);
-    const scale = 1 + progress * 0.15;
-    const translateX = progress * 30 - 15;
+    const patternIdx = sceneIndex % KEN_BURNS_PATTERNS.length;
+    const anim = KEN_BURNS_PATTERNS[patternIdx](progress);
     return (
-      <AbsoluteFill>
+      <AbsoluteFill style={{ overflow: "hidden" }}>
         <Img
           src={staticFile(`images/${slice.image}`)}
           style={{
             width: "100%",
             height: "100%",
             objectFit: "cover",
-            transform: `scale(${scale}) translateX(${translateX}px)`,
+            transform: `scale(${anim.scale}) translate(${anim.x}px, ${anim.y}px)`,
           }}
+        />
+        {/* Subtle parallax glow overlay for "alive" feel */}
+        <AbsoluteFill
+          style={{
+            backgroundColor: "rgba(0,0,0,0.45)",
+            background: `linear-gradient(${135 + progress * 90}deg, rgba(168,85,247,0.15) 0%, rgba(0,0,0,0.5) 50%, rgba(34,211,238,0.1) 100%)`,
+          }}
+        />
+      </AbsoluteFill>
+    );
+  }
+
+  // Fallback: video if image not available but video is
+  if (slice.video) {
+    return (
+      <AbsoluteFill style={{ overflow: "hidden" }}>
+        <Video
+          src={staticFile(`videos/${slice.video}`)}
+          style={{ width: "100%", height: "100%", objectFit: "cover", scale: "1.1" }}
+          muted
+          loop
         />
         <AbsoluteFill style={{ backgroundColor: "rgba(0,0,0,0.55)" }} />
       </AbsoluteFill>
     );
   }
 
-  // Gradient fallback
-  const gradients = [
-    "radial-gradient(circle at 30% 30%, #a855f740 0%, #0a0a0f 70%)",
-    "radial-gradient(circle at 70% 70%, #22d3ee40 0%, #0a0a0f 70%)",
-    "radial-gradient(circle at 50% 50%, #ec489940 0%, #0a0a0f 70%)",
-    "radial-gradient(circle at 20% 80%, #facc1540 0%, #0a0a0f 70%)",
-    "radial-gradient(circle at 80% 20%, #4ade8040 0%, #0a0a0f 70%)",
-  ];
-  const gradient = gradients[Math.floor(slice.start) % gradients.length];
-  return <AbsoluteFill style={{ background: gradient }} />;
+  // Infinite Bento Pan fallback (animated, no black spots)
+  return (
+    <AbsoluteFill style={{ overflow: "hidden", backgroundColor: "#0a0a0f" }}>
+      <InfiniteBentoPan panSpeed={0.5} accentColor="#a855f7" />
+      <AbsoluteFill style={{ backgroundColor: "rgba(0,0,0,0.3)" }} />
+    </AbsoluteFill>
+  );
 };
 
 // ─── Intro scene (logo animation) ───────────────────────────────────────────
@@ -391,15 +436,13 @@ const IntroScene: React.FC<{ slice: SceneSlice; timeline: Timeline }> = ({ slice
 
 // ─── Scene renderer ─────────────────────────────────────────────────────────
 
-const Scene: React.FC<{ slice: SceneSlice; timeline: Timeline }> = ({ slice, timeline }) => {
+const Scene: React.FC<{ slice: SceneSlice; timeline: Timeline; sceneIndex?: number }> = ({ slice, timeline, sceneIndex = 0 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const sliceDuration = slice.end - slice.start;
 
-  // Font family — use Google Font if specified, else system font
-  const fontFamily = timeline.font
-    ? `'${timeline.font}', system-ui, sans-serif`
-    : "system-ui, sans-serif";
+  // Font family — use loaded Google Font
+  const fontFamily = LOADED_FONT || "system-ui, sans-serif";
 
   // Fade out near end of slice (last 10 frames)
   const fadeOut = interpolate(
@@ -411,7 +454,7 @@ const Scene: React.FC<{ slice: SceneSlice; timeline: Timeline }> = ({ slice, tim
 
   return (
     <AbsoluteFill style={{ backgroundColor: "#0a0a0f" }}>
-      <Background slice={slice} />
+      <Background slice={slice} sceneIndex={sceneIndex} />
 
       {slice.text && (
         <AbsoluteFill
@@ -497,7 +540,7 @@ export const MyComposition: React.FC = () => {
                 {useIntro ? (
                   <IntroScene slice={slice} timeline={timeline} />
                 ) : (
-                  <Scene slice={slice} timeline={timeline} />
+                  <Scene slice={slice} timeline={timeline} sceneIndex={i} />
                 )}
               </TransitionSeries.Sequence>
               {i < timeline.slices.length - 1 && (

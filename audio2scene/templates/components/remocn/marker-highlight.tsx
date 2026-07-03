@@ -26,8 +26,8 @@ export function MarkerHighlight({
   highlight,
   after = "",
   markerColor = "#facc15",
-  baseColor = "#171717",
-  highlightedTextColor = "#171717",
+  baseColor = "#ffffff",
+  highlightedTextColor = "#0a0a0f",
   fontSize = 72,
   fontWeight = 600,
   speed = 1,
@@ -59,7 +59,7 @@ export function MarkerHighlight({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "white",
+        background: "transparent",
       }}
     >
       <span

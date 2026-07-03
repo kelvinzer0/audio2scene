@@ -426,18 +426,18 @@ def map_content_to_timeline(
         if text_idx < n_texts:
             text_idx += 1
 
-        # Background: prefer video, fallback image, fallback gradient
+        # Background: assign BOTH video AND image per scene (if available)
+        # Background component will alternate: even scenes → video, odd scenes → image
         video_file = None
         image_file = None
-        bg_kind = "text"
         if spec.videos:
             video_file = Path(spec.videos[video_idx % len(spec.videos)]).name
             video_idx += 1
-            bg_kind = "video"
-        elif spec.images:
+        if spec.images:
             image_file = Path(spec.images[image_idx % len(spec.images)]).name
             image_idx += 1
-            bg_kind = "image"
+        # Determine kind: prefer "video" if both available (component will alternate)
+        bg_kind = "video" if video_file else ("image" if image_file else "text")
 
         transition = "fade" if i == 0 else _pick_transition(i)
         transition_dur = 14 if i == 0 else 14

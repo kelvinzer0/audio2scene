@@ -23,7 +23,7 @@ export function InlineHighlight({
   before,
   highlight,
   after = "",
-  baseColor = "#171717",
+  baseColor = "#ffffff",
   highlightColor = "#ff5e3a",
   fontSize = 48,
   fontWeight = 600,
@@ -54,7 +54,7 @@ export function InlineHighlight({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "white",
+        background: "transparent",
       }}
     >
       <span
