@@ -7,61 +7,148 @@ import {
   staticFile,
   useCurrentFrame,
   useVideoConfig,
+  Easing,
 } from "remotion";
 import { Video } from "@remotion/media";
 import { TransitionSeries, linearTiming } from "@remotion/transitions";
 import type { TransitionPresentation } from "@remotion/transitions";
 import type { TransitionPresentationComponentProps } from "@remotion/transitions";
 
+// ─── Typography components (from remocn registry) ───────────────────────────
+import { SoftBlurIn } from "./components/remocn/soft-blur-in";
+import { PerCharacterRise } from "./components/remocn/per-character-rise";
+import { BottomUpLetters } from "./components/remocn/bottom-up-letters";
+import { TopDownLetters } from "./components/remocn/top-down-letters";
+import { SpringScaleIn } from "./components/remocn/spring-scale-in";
+import { MicroScaleFade } from "./components/remocn/micro-scale-fade";
+import { ScaleDownFade } from "./components/remocn/scale-down-fade";
+import { BlurOutUp } from "./components/remocn/blur-out-up";
+import { FocusBlurResolve } from "./components/remocn/focus-blur-resolve";
+import { LineByLineSlide } from "./components/remocn/line-by-line-slide";
+import { PerWordCrossfade } from "./components/remocn/per-word-crossfade";
+import { FadeThrough } from "./components/remocn/fade-through";
+import { SharedAxisY } from "./components/remocn/shared-axis-y";
+import { SharedAxisZ } from "./components/remocn/shared-axis-z";
+import { ShortSlideRight } from "./components/remocn/short-slide-right";
+import { KineticCenterBuild } from "./components/remocn/kinetic-center-build";
+import { ShortSlideDown } from "./components/remocn/short-slide-down";
+import { StaggeredFadeUp } from "./components/remocn/staggered-fade-up";
+import { MaskRevealUp } from "./components/remocn/mask-reveal-up";
+import { TrackingIn } from "./components/remocn/tracking-in";
+import { InlineHighlight } from "./components/remocn/inline-highlight";
+import { MarkerHighlight } from "./components/remocn/marker-highlight";
+import { ShimmerSweep } from "./components/remocn/shimmer-sweep";
+import { Typewriter } from "./components/remocn/typewriter";
+import { SlotMachineRoll } from "./components/remocn/slot-machine-roll";
+import { NumberWheel } from "./components/remocn/number-wheel";
+import { RollingNumber } from "./components/remocn/rolling-number";
+import { InfiniteMarquee } from "./components/remocn/infinite-marquee";
+import { PerspectiveMarquee } from "./components/remocn/perspective-marquee";
+import { MatrixDecode } from "./components/remocn/matrix-decode";
+import { RGBGlitchText } from "./components/remocn/rgb-glitch-text";
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 interface SceneSlice {
-  kind: string;
+  kind: string;            // "text" | "video" | "image" (background type)
   start: number;
   end: number;
-  segment_label: string;
-  segment_intensity: number;
-  segment_intensity_label: string;
   text: string | null;
+  effect: string;          // typography effect name
   video: string | null;
   image: string | null;
   transition: string;
   transition_duration_frames: number;
+  segment_label: string;
+  segment_intensity: number;
+  segment_intensity_label: string;
 }
 
 interface Timeline {
   title: string;
   duration: number;
   tempo: number;
-  n_segments: number;
-  n_events: number;
+  fps: number;
+  width: number;
+  height: number;
+  font: string | null;
   slices: SceneSlice[];
-  waveform: number[];
-  segments: Array<{
-    label: string;
-    start: number;
-    end: number;
-    intensity: number;
-    intensity_label: string;
-  }>;
 }
 
-// ─── Color palette per segment label ────────────────────────────────────────
+// ─── Typography renderer — picks component by effect name ───────────────────
 
-const LABEL_COLORS: Record<string, string> = {
-  Intro: "#60a5fa",
-  "Fade In": "#22d3ee",
-  "Main Variation A": "#a855f7",
-  "Main Variation B": "#ec4899",
-  "Main Variation C": "#fb923c",
-  "Main Variation D": "#facc15",
-  "Fill In": "#4ade80",
-  Break: "#94a3b8",
-  Ending: "#818cf8",
-  "Fade Out": "#2dd4bf",
+const TYPOGRAPHY_PROPS = {
+  fontSize: 96,
+  color: "#ffffff",
+  fontWeight: 800,
 };
 
-// ─── Custom transitions ─────────────────────────────────────────────────────
+function renderTypography(effect: string, text: string, fontFamily: string) {
+  const baseProps = {
+    ...TYPOGRAPHY_PROPS,
+    className: "",
+    style: { fontFamily },
+  };
+
+  // Components that take a single `text` prop
+  switch (effect) {
+    case "soft-blur-in":         return <SoftBlurIn {...baseProps} text={text} />;
+    case "per-character-rise":   return <PerCharacterRise {...baseProps} text={text} />;
+    case "bottom-up-letters":    return <BottomUpLetters {...baseProps} text={text} />;
+    case "top-down-letters":     return <TopDownLetters {...baseProps} text={text} />;
+    case "spring-scale-in":      return <SpringScaleIn {...baseProps} text={text} />;
+    case "micro-scale-fade":     return <MicroScaleFade {...baseProps} text={text} />;
+    case "scale-down-fade":      return <ScaleDownFade {...baseProps} text={text} />;
+    case "blur-out-up":          return <BlurOutUp {...baseProps} text={text} />;
+    case "focus-blur-resolve":   return <FocusBlurResolve {...baseProps} text={text} />;
+    case "line-by-line-slide":   return <LineByLineSlide {...baseProps} text={text} />;
+    case "short-slide-right":    return <ShortSlideRight {...baseProps} text={text} />;
+    case "kinetic-center-build": return <KineticCenterBuild {...baseProps} text={text} />;
+    case "short-slide-down":     return <ShortSlideDown {...baseProps} text={text} />;
+    case "staggered-fade-up":    return <StaggeredFadeUp {...baseProps} text={text} />;
+    case "mask-reveal-up":       return <MaskRevealUp {...baseProps} text={text} />;
+    case "tracking-in":          return <TrackingIn {...baseProps} text={text} />;
+    case "shimmer-sweep":        return <ShimmerSweep {...baseProps} text={text} />;
+    case "typewriter":           return <Typewriter {...baseProps} text={text} />;
+    case "slot-machine-roll":    return <SlotMachineRoll {...baseProps} from={text} to={text} />;
+    case "infinite-marquee":     return <InfiniteMarquee {...baseProps} text={text} />;
+    case "perspective-marquee":  return <PerspectiveMarquee {...baseProps} items={[text]} />;
+    case "matrix-decode":        return <MatrixDecode {...baseProps} text={text} />;
+    case "rgb-glitch-text":      return <RGBGlitchText {...baseProps} text={text} />;
+    // Transition-style components: need fromText + toText. Use same text for both
+    // so the component still animates (fade between identical strings = entrance animation).
+    case "per-word-crossfade":   return <PerWordCrossfade {...baseProps} fromText={text} toText={text} />;
+    case "fade-through":         return <FadeThrough {...baseProps} fromText={text} toText={text} />;
+    case "shared-axis-y":        return <SharedAxisY {...baseProps} fromText={text} toText={text} />;
+    case "shared-axis-z":        return <SharedAxisZ {...baseProps} fromText={text} toText={text} />;
+    // Number-based components: render text via SoftBlurIn fallback (these need numeric `to` prop)
+    case "number-wheel":
+    case "rolling-number":       return <SoftBlurIn {...baseProps} text={text} />;
+    // Highlight components: need before/highlight/after — split text at first space
+    case "inline-highlight": {
+      const parts = text.split(" ");
+      if (parts.length >= 2) {
+        const highlight = parts[0];
+        const before = "";
+        const after = parts.slice(1).join(" ");
+        return <InlineHighlight {...baseProps} before={before} highlight={highlight} after={after} />;
+      }
+      return <SoftBlurIn {...baseProps} text={text} />;
+    }
+    case "marker-highlight": {
+      const parts = text.split(" ");
+      if (parts.length >= 2) {
+        const highlight = parts[0];
+        const after = parts.slice(1).join(" ");
+        return <MarkerHighlight {...baseProps} highlight={highlight} after={after} />;
+      }
+      return <SoftBlurIn {...baseProps} text={text} />;
+    }
+    default:                     return <SoftBlurIn {...baseProps} text={text} />;
+  }
+}
+
+// ─── Scene transitions (CSS-based, no WebGL) ────────────────────────────────
 
 const FadePresentation: React.FC<TransitionPresentationComponentProps<Record<string, unknown>>> = ({
   children, presentationProgress, presentationDirection,
@@ -142,180 +229,82 @@ function getTransition(name: string): TransitionPresentation<Record<string, unkn
   }
 }
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─── Background renderer (video / image / gradient) ─────────────────────────
 
-function fmtTime(t: number): string {
-  const m = Math.floor(t / 60);
-  const s = Math.floor(t % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
-// ─── Title scene ────────────────────────────────────────────────────────────
-
-const TitleScene: React.FC<{ slice: SceneSlice; timeline: Timeline }> = ({ slice, timeline }) => {
-  const frame = useCurrentFrame();
-  const fadeOut = interpolate(frame, [60, 90], [1, 0], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-
-  return (
-    <AbsoluteFill style={{ opacity: fadeOut, backgroundColor: "#0a0a0f" }}>
-      <AbsoluteFill
-        style={{
-          background: "radial-gradient(circle at center, #a855f740 0%, #0a0a0f 70%)",
-        }}
-      />
-      <AbsoluteFill
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 24,
-          fontFamily: "Inter, system-ui, sans-serif",
-        }}
-      >
-        <div
-          style={{
-            color: "#a855f7",
-            fontSize: 16,
-            fontWeight: 600,
-            letterSpacing: 6,
-            textTransform: "uppercase",
-            opacity: interpolate(frame, [0, 15], [0, 1], { extrapolateRight: "clamp" }),
-          }}
-        >
-          ◆ Now Playing
-        </div>
-        <div
-          style={{
-            color: "white",
-            fontSize: 64,
-            fontWeight: 800,
-            textAlign: "center",
-            maxWidth: "80%",
-            opacity: interpolate(frame, [10, 30], [0, 1], { extrapolateRight: "clamp" }),
-            transform: `scale(${interpolate(frame, [10, 30], [0.9, 1], { extrapolateRight: "clamp" })})`,
-          }}
-        >
-          {slice.text || timeline.title}
-        </div>
-        <div
-          style={{
-            marginTop: 16,
-            display: "flex",
-            gap: 24,
-            color: "#94a3b8",
-            fontSize: 16,
-            fontFamily: "monospace",
-            opacity: interpolate(frame, [30, 60], [0, 1], { extrapolateRight: "clamp" }),
-          }}
-        >
-          <span style={{ color: "#22d3ee" }}>{timeline.tempo} BPM</span>
-          <span>·</span>
-          <span>{fmtTime(timeline.duration)}</span>
-          <span>·</span>
-          <span>{timeline.n_segments} segments</span>
-        </div>
-      </AbsoluteFill>
-    </AbsoluteFill>
-  );
-};
-
-// ─── Main scene (with video B-roll) ─────────────────────────────────────────
-
-const MainScene: React.FC<{ slice: SceneSlice; timeline: Timeline }> = ({ slice, timeline }) => {
+const Background: React.FC<{ slice: SceneSlice }> = ({ slice }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const localTime = slice.start + frame / fps;
-  const color = LABEL_COLORS[slice.segment_label] || "#a855f7";
+
+  if (slice.video) {
+    return (
+      <AbsoluteFill>
+        <Video
+          src={staticFile(`videos/${slice.video}`)}
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          muted
+        />
+        <AbsoluteFill style={{ backgroundColor: "rgba(0,0,0,0.55)" }} />
+      </AbsoluteFill>
+    );
+  }
+
+  if (slice.image) {
+    // Ken Burns: slow zoom + pan
+    const sliceDuration = slice.end - slice.start;
+    const progress = (frame / fps) / Math.max(0.1, sliceDuration);
+    const scale = 1 + progress * 0.15;
+    const translateX = progress * 30 - 15;
+    return (
+      <AbsoluteFill>
+        <Img
+          src={staticFile(`images/${slice.image}`)}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            transform: `scale(${scale}) translateX(${translateX}px)`,
+          }}
+        />
+        <AbsoluteFill style={{ backgroundColor: "rgba(0,0,0,0.55)" }} />
+      </AbsoluteFill>
+    );
+  }
+
+  // Gradient fallback
+  const gradients = [
+    "radial-gradient(circle at 30% 30%, #a855f740 0%, #0a0a0f 70%)",
+    "radial-gradient(circle at 70% 70%, #22d3ee40 0%, #0a0a0f 70%)",
+    "radial-gradient(circle at 50% 50%, #ec489940 0%, #0a0a0f 70%)",
+    "radial-gradient(circle at 20% 80%, #facc1540 0%, #0a0a0f 70%)",
+    "radial-gradient(circle at 80% 20%, #4ade8040 0%, #0a0a0f 70%)",
+  ];
+  const gradient = gradients[Math.floor(slice.start) % gradients.length];
+  return <AbsoluteFill style={{ background: gradient }} />;
+};
+
+// ─── Scene renderer ─────────────────────────────────────────────────────────
+
+const Scene: React.FC<{ slice: SceneSlice; timeline: Timeline }> = ({ slice, timeline }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const sliceDuration = slice.end - slice.start;
+
+  // Font family — use Google Font if specified, else system font
+  const fontFamily = timeline.font
+    ? `'${timeline.font}', system-ui, sans-serif`
+    : "system-ui, sans-serif";
+
+  // Fade out near end of slice (last 10 frames)
+  const fadeOut = interpolate(
+    frame,
+    [Math.max(0, sliceDuration * fps - 10), sliceDuration * fps],
+    [1, 0],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
 
   return (
     <AbsoluteFill style={{ backgroundColor: "#0a0a0f" }}>
-      {slice.video ? (
-        <AbsoluteFill>
-          <Video
-            src={staticFile(`videos/${slice.video}`)}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            muted
-          />
-          <AbsoluteFill style={{ backgroundColor: "rgba(0,0,0,0.4)" }} />
-        </AbsoluteFill>
-      ) : (
-        <AbsoluteFill
-          style={{
-            background: `radial-gradient(circle at center, ${color}40 0%, #0a0a0f 70%)`,
-          }}
-        />
-      )}
-
-      <div
-        style={{
-          position: "absolute",
-          top: 30,
-          left: 40,
-          fontFamily: "Inter, system-ui, sans-serif",
-          opacity: interpolate(frame, [0, 15], [0, 1], { extrapolateRight: "clamp" }),
-        }}
-      >
-        <div
-          style={{
-            color,
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: 3,
-            textTransform: "uppercase",
-            marginBottom: 4,
-          }}
-        >
-          {slice.kind === "main" ? "Main" : slice.segment_label}
-        </div>
-        <div
-          style={{
-            color: "white",
-            fontSize: 24,
-            fontWeight: 800,
-            textShadow: "0 2px 12px rgba(0,0,0,0.8)",
-          }}
-        >
-          {slice.segment_label}
-        </div>
-        <div
-          style={{
-            marginTop: 6,
-            padding: "3px 10px",
-            backgroundColor: `${color}30`,
-            border: `1px solid ${color}`,
-            borderRadius: 4,
-            color,
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: 1,
-            textTransform: "uppercase",
-            display: "inline-block",
-          }}
-        >
-          {slice.segment_intensity_label}
-        </div>
-      </div>
-
-      <div
-        style={{
-          position: "absolute",
-          top: 30,
-          right: 40,
-          textAlign: "right",
-          fontFamily: "monospace",
-          color: "white",
-          fontSize: 20,
-          fontWeight: 700,
-          textShadow: "0 2px 12px rgba(0,0,0,0.8)",
-        }}
-      >
-        {fmtTime(localTime)}
-        <span style={{ color: "#475569", fontSize: 14 }}>{` / ${fmtTime(timeline.duration)}`}</span>
-      </div>
+      <Background slice={slice} />
 
       {slice.text && (
         <AbsoluteFill
@@ -323,175 +312,15 @@ const MainScene: React.FC<{ slice: SceneSlice; timeline: Timeline }> = ({ slice,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            opacity: fadeOut,
             pointerEvents: "none",
           }}
         >
-          <div
-            style={{
-              color: "white",
-              fontSize: 48,
-              fontWeight: 800,
-              textAlign: "center",
-              maxWidth: "80%",
-              textShadow: "0 4px 24px rgba(0,0,0,0.9)",
-              fontFamily: "Inter, system-ui, sans-serif",
-              opacity: interpolate(frame, [10, 30, 60, 80], [0, 1, 1, 0], {
-                extrapolateRight: "clamp",
-              }),
-            }}
-          >
-            {slice.text}
+          <div style={{ fontFamily }}>
+            {renderTypography(slice.effect, slice.text, fontFamily)}
           </div>
         </AbsoluteFill>
       )}
-    </AbsoluteFill>
-  );
-};
-
-// ─── Break scene (image with Ken Burns) ─────────────────────────────────────
-
-const BreakScene: React.FC<{ slice: SceneSlice; timeline: Timeline }> = ({ slice, timeline }) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const sliceDuration = slice.end - slice.start;
-  const progress = (frame / fps) / sliceDuration;
-
-  const scale = 1 + progress * 0.15;
-  const translateX = progress * 30 - 15;
-
-  return (
-    <AbsoluteFill style={{ backgroundColor: "#0a0a0f" }}>
-      {slice.image ? (
-        <AbsoluteFill>
-          <Img
-            src={staticFile(`images/${slice.image}`)}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              transform: `scale(${scale}) translateX(${translateX}px)`,
-            }}
-          />
-          <AbsoluteFill style={{ backgroundColor: "rgba(0,0,0,0.5)" }} />
-        </AbsoluteFill>
-      ) : (
-        <AbsoluteFill
-          style={{
-            background: "radial-gradient(circle at center, #94a3b840 0%, #0a0a0f 70%)",
-          }}
-        />
-      )}
-
-      <AbsoluteFill
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: "Inter, system-ui, sans-serif",
-        }}
-      >
-        <div
-          style={{
-            color: "#94a3b8",
-            fontSize: 14,
-            fontWeight: 700,
-            letterSpacing: 6,
-            textTransform: "uppercase",
-            opacity: interpolate(frame, [0, 15], [0, 0.8], { extrapolateRight: "clamp" }),
-          }}
-        >
-          ◆ Break
-        </div>
-      </AbsoluteFill>
-
-      {slice.text && (
-        <AbsoluteFill
-          style={{
-            display: "flex",
-            alignItems: "flex-end",
-            justifyContent: "center",
-            paddingBottom: 120,
-            pointerEvents: "none",
-          }}
-        >
-          <div
-            style={{
-              color: "white",
-              fontSize: 36,
-              fontWeight: 800,
-              textAlign: "center",
-              maxWidth: "80%",
-              textShadow: "0 4px 24px rgba(0,0,0,0.9)",
-              opacity: interpolate(frame, [10, 30, 60, 80], [0, 1, 1, 0], {
-                extrapolateRight: "clamp",
-              }),
-            }}
-          >
-            {slice.text}
-          </div>
-        </AbsoluteFill>
-      )}
-    </AbsoluteFill>
-  );
-};
-
-// ─── Ending scene ───────────────────────────────────────────────────────────
-
-const EndingScene: React.FC<{ slice: SceneSlice; timeline: Timeline }> = ({ slice, timeline }) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const sliceDuration = slice.end - slice.start;
-  const progress = (frame / fps) / sliceDuration;
-
-  const fadeToBlack = interpolate(progress, [0.6, 1.0], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-
-  return (
-    <AbsoluteFill style={{ backgroundColor: "#0a0a0f" }}>
-      <AbsoluteFill
-        style={{
-          background: "radial-gradient(circle at center, #818cf840 0%, #0a0a0f 70%)",
-        }}
-      />
-      <AbsoluteFill
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 24,
-          fontFamily: "Inter, system-ui, sans-serif",
-          opacity: 1 - fadeToBlack,
-        }}
-      >
-        <div
-          style={{
-            color: "#818cf8",
-            fontSize: 14,
-            fontWeight: 700,
-            letterSpacing: 6,
-            textTransform: "uppercase",
-            opacity: interpolate(frame, [0, 15], [0, 1], { extrapolateRight: "clamp" }),
-          }}
-        >
-          ◆ Outro
-        </div>
-        <div
-          style={{
-            color: "white",
-            fontSize: 56,
-            fontWeight: 800,
-            textAlign: "center",
-            maxWidth: "80%",
-            opacity: interpolate(frame, [10, 30], [0, 1], { extrapolateRight: "clamp" }),
-          }}
-        >
-          {slice.text || "Thanks for watching"}
-        </div>
-      </AbsoluteFill>
-      <AbsoluteFill style={{ backgroundColor: "black", opacity: fadeToBlack }} />
     </AbsoluteFill>
   );
 };
@@ -499,7 +328,6 @@ const EndingScene: React.FC<{ slice: SceneSlice; timeline: Timeline }> = ({ slic
 // ─── Main composition ───────────────────────────────────────────────────────
 
 export const MyComposition: React.FC = () => {
-  const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const [timeline, setTimeline] = useState<Timeline | null>(null);
 
@@ -528,9 +356,7 @@ export const MyComposition: React.FC = () => {
   }
 
   return (
-    <AbsoluteFill
-      style={{ backgroundColor: "#0a0a0f", fontFamily: "Inter, system-ui, sans-serif" }}
-    >
+    <AbsoluteFill style={{ backgroundColor: "#0a0a0f" }}>
       <Audio src={staticFile("audio.mp3")} />
 
       <TransitionSeries>
@@ -540,15 +366,7 @@ export const MyComposition: React.FC = () => {
           return (
             <React.Fragment key={i}>
               <TransitionSeries.Sequence durationInFrames={dur}>
-                {slice.kind === "title" ? (
-                  <TitleScene slice={slice} timeline={timeline} />
-                ) : slice.kind === "break" ? (
-                  <BreakScene slice={slice} timeline={timeline} />
-                ) : slice.kind === "ending" ? (
-                  <EndingScene slice={slice} timeline={timeline} />
-                ) : (
-                  <MainScene slice={slice} timeline={timeline} />
-                )}
+                <Scene slice={slice} timeline={timeline} />
               </TransitionSeries.Sequence>
               {i < timeline.slices.length - 1 && (
                 <TransitionSeries.Transition

@@ -56,13 +56,21 @@ from .video_editor import map_video_events, VideoEvent
 
 @dataclass
 class DataSpec:
-    """User-provided spec from data.json."""
+    """User-provided spec from data.json.
+
+    This is a DYNAMIC VIDEO GENERATOR, not a music player. The video is
+    text-driven: each entry in `text[]` becomes one scene with a random
+    typography effect from the remocn registry. Music analysis (audio2scene)
+    is used only to time the scene cuts — segment boundaries and beat events
+    decide WHEN to switch text, but the visible UI is pure typography.
+    """
     music: str
     screen: str = "1280:720"     # "W:H"
     text: List[str] = None
     videos: List[str] = None
     images: List[str] = None
     duration: Optional[float] = None  # max render duration in seconds (None = full song)
+    font: Optional[str] = None  # Google Font name (e.g. "Inter", "JetBrains Mono")
 
     @classmethod
     def from_dict(cls, d: dict) -> "DataSpec":
@@ -73,6 +81,7 @@ class DataSpec:
             videos=d.get("videos", []) or [],
             images=d.get("images", []) or [],
             duration=_parse_duration(d.get("duration")),
+            font=d.get("font"),
         )
 
     @property
@@ -110,23 +119,93 @@ def _parse_duration(value) -> Optional[float]:
 
 @dataclass
 class SceneSlice:
-    """A time slice in the timeline with mapped content."""
-    kind: str                       # "title" | "main" | "break" | "ending"
+    """A time slice in the timeline with mapped content.
+
+    This is a DYNAMIC VIDEO scene — pure typography showcase. The `effect`
+    field selects which remocn typography component renders the `text`.
+    Music analysis only decides WHEN scenes change (via segment/Cut events),
+    not WHAT is shown.
+    """
+    kind: str                       # "text" | "video" | "image" (kind of background)
     start: float                    # seconds
     end: float                      # seconds
-    segment_label: str = ""
-    segment_intensity: float = 0.0
-    segment_intensity_label: str = ""
-    # Mapped content
-    text: Optional[str] = None
-    video: Optional[str] = None     # filename in public/videos/
-    image: Optional[str] = None     # filename in public/images/
+    text: Optional[str] = None      # text to display (rendered by typography effect)
+    effect: str = "soft-blur-in"    # remocn typography component name
+    video: Optional[str] = None     # background video filename (public/videos/)
+    image: Optional[str] = None     # background image filename (public/images/)
     # Transition into this slice (from previous)
     transition: str = "fade"        # transition name
     transition_duration_frames: int = 14
+    # Optional metadata (kept for debugging, not shown in UI)
+    segment_label: str = ""
+    segment_intensity: float = 0.0
+    segment_intensity_label: str = ""
 
 
 # ─── Content mapping ─────────────────────────────────────────────────────────
+
+
+# ─── Typography effect pool (31 remocn components) ───────────────────────────
+
+TYPOGRAPHY_EFFECTS = [
+    "soft-blur-in",
+    "per-character-rise",
+    "bottom-up-letters",
+    "top-down-letters",
+    "spring-scale-in",
+    "micro-scale-fade",
+    "scale-down-fade",
+    "blur-out-up",
+    "focus-blur-resolve",
+    "line-by-line-slide",
+    "per-word-crossfade",
+    "fade-through",
+    "shared-axis-y",
+    "shared-axis-z",
+    "short-slide-right",
+    "kinetic-center-build",
+    "short-slide-down",
+    "staggered-fade-up",
+    "mask-reveal-up",
+    "tracking-in",
+    "inline-highlight",
+    "marker-highlight",
+    "shimmer-sweep",
+    "typewriter",
+    "slot-machine-roll",
+    "rolling-number",
+    "infinite-marquee",
+    "perspective-marquee",
+    "matrix-decode",
+    "rgb-glitch-text",
+]
+
+# Scene transition pool (between text scenes)
+SCENE_TRANSITIONS = [
+    "fade", "slideLeft", "slideRight", "slideUp", "slideDown",
+    "zoomIn", "zoomOut", "irisWipe", "whipPan", "whipPanRight",
+    "pushThrough", "focusPull",
+]
+
+
+def _seeded_random(seed: str) -> float:
+    """Deterministic hash-based random in [0, 1)."""
+    h = 0
+    for ch in seed:
+        h = (h * 31 + ord(ch)) & 0xFFFFFFFF
+    return (h % 10000) / 10000
+
+
+def _pick_typography(seed: int) -> str:
+    """Deterministic pick from TYPOGRAPHY_EFFECTS."""
+    idx = int(_seeded_random(f"typo-{seed}") * len(TYPOGRAPHY_EFFECTS))
+    return TYPOGRAPHY_EFFECTS[idx]
+
+
+def _pick_transition(seed: int) -> str:
+    """Deterministic pick from SCENE_TRANSITIONS."""
+    idx = int(_seeded_random(f"trans-{seed}") * len(SCENE_TRANSITIONS))
+    return SCENE_TRANSITIONS[idx]
 
 
 def map_content_to_timeline(
@@ -135,148 +214,126 @@ def map_content_to_timeline(
     spec: DataSpec,
     fps: int = 30,
     min_cut_gap_sec: float = 3.0,
+    total_duration: Optional[float] = None,
 ) -> List[SceneSlice]:
-    """Map user content (text/videos/images) to song structure.
+    """Map user content (text/videos/images) to a DYNAMIC VIDEO timeline.
+
+    This is a text-driven video generator. Each entry in spec.text[] becomes
+    one scene with a random typography effect. Music analysis (segments +
+    Cut events) is used only to TIME scene boundaries — when to cut to the
+    next text. The visible UI is pure typography (no segment labels,
+    no intensity badges, no time/BPM displays).
 
     Strategy:
-    - Title scene (first 3s or until first segment): text[0] + song title
-    - Main Variation slices: cycle through videos[] (one per slice)
-    - Break segments: cycle through images[] (Ken Burns)
-    - Fill In: brief flash overlay (no content)
-    - Ending / Fade Out: text[-1]
-    - Filtered Cut events inside Main segments → sub-slices with random transitions
+    1. Build a list of "cut points" from filtered Cut events (3s rule)
+       plus segment boundaries — these are CANDIDATE scene boundaries.
+    2. Distribute text[] across the timeline:
+       - If len(text) <= len(cut_points): assign one text per cut region
+       - Else: split timeline evenly into len(text) scenes
+    3. Each scene gets:
+       - Random typography effect (deterministic by index)
+       - Background: cycle videos[] (or images[] if no videos), fallback gradient
+       - Random transition from previous scene
     """
     slices: List[SceneSlice] = []
-    if not segments:
+    if not spec.text:
+        # No text → just one video/image scene for the whole duration
+        end = total_duration or (segments[-1].end if segments else 30.0)
+        video_file = Path(spec.videos[0]).name if spec.videos else None
+        image_file = Path(spec.images[0]).name if spec.images else None
+        slices.append(SceneSlice(
+            kind="video" if video_file else ("image" if image_file else "text"),
+            start=0.0, end=end,
+            video=video_file, image=image_file,
+            text=None, effect="soft-blur-in",
+            transition="fade",
+        ))
         return slices
 
-    # Filter Cut events for sub-slicing (3s rule)
+    # Determine total duration
+    if total_duration is None:
+        total_duration = segments[-1].end if segments else 30.0
+
+    n_texts = len(spec.text)
+
+    # === Build candidate cut points from filtered Cut events + segment starts ===
     cuts = sorted(
         [e for e in events if e.effect == "Cut" and e.intensity >= 0.05],
         key=lambda e: e.time,
     )
-    filtered_cuts: List[VideoEvent] = []
+    filtered_cuts: List[float] = []
     last_cut_time = -1e9
     for c in cuts:
-        if c.time - last_cut_time >= min_cut_gap_sec:
-            filtered_cuts.append(c)
+        if c.time - last_cut_time >= min_cut_gap_sec and c.time < total_duration:
+            filtered_cuts.append(c.time)
             last_cut_time = c.time
 
-    # Available transitions pool
-    transitions = [
-        "fade", "slideLeft", "slideRight", "slideUp", "slideDown",
-        "zoomIn", "zoomOut", "irisWipe", "whipPan", "whipPanRight",
-        "pushThrough", "focusPull",
-    ]
+    # Also include segment boundaries as candidate cuts
+    seg_starts = [s.start for s in segments if 0 < s.start < total_duration]
+    all_cuts = sorted(set(filtered_cuts + seg_starts))
 
-    def next_transition(seed: int) -> str:
-        # Deterministic pick
-        idx = (seed * 7 + 3) % len(transitions)
-        return transitions[idx]
-
-    # === Title scene (3s or until first segment starts) ===
-    title_end = min(3.0, segments[0].start + 0.5)
-    if segments[0].start > 0:
-        title_end = segments[0].start
+    # === Decide scene boundaries ===
+    # Strategy: distribute n_texts scenes across total_duration.
+    # Use cut points if we have enough; otherwise split evenly.
+    if len(all_cuts) >= n_texts - 1:
+        # We have enough cut points — pick n_texts-1 of them, evenly spaced in the list
+        # to serve as boundaries between scenes
+        if n_texts == 1:
+            boundaries: List[float] = []
+        else:
+            # Pick n_texts-1 cut points spread across the cut list
+            step = len(all_cuts) / (n_texts - 1) if n_texts > 1 else 0
+            indices = [int(i * step) for i in range(n_texts - 1)]
+            indices = sorted(set(indices))  # dedupe
+            boundaries = [all_cuts[i] for i in indices]
     else:
-        title_end = 3.0
+        # Not enough cuts — split timeline evenly
+        boundaries = [total_duration * (i + 1) / n_texts for i in range(n_texts - 1)]
 
-    if spec.text:
-        title_text = spec.text[0]
-    else:
-        title_text = Path(spec.music).stem
+    # Build scene start/end list
+    scene_starts = [0.0] + boundaries
+    scene_ends = boundaries + [total_duration]
 
-    slices.append(SceneSlice(
-        kind="title",
-        start=0.0,
-        end=title_end,
-        text=title_text,
-        transition="fade",
-        transition_duration_frames=14,
-    ))
-
-    # === Per-segment mapping ===
+    # === Assign content per scene ===
     video_idx = 0
     image_idx = 0
-    text_idx = 1 if spec.text else 0  # text[0] used for title
-    seed_counter = 1
 
-    for seg_idx, seg in enumerate(segments):
-        if seg.label in ("Ending", "Fade Out"):
-            # Ending scene: last text + fade out
-            ending_text = spec.text[-1] if spec.text and len(spec.text) > 1 else None
-            slices.append(SceneSlice(
-                kind="ending",
-                start=seg.start,
-                end=seg.end,
-                segment_label=seg.label,
-                segment_intensity=seg.intensity,
-                segment_intensity_label=seg.intensity_label,
-                text=ending_text,
-                transition=next_transition(seed_counter),
-                transition_duration_frames=18,
-            ))
-            seed_counter += 1
-            continue
+    for i, (start, end) in enumerate(zip(scene_starts, scene_ends)):
+        if end - start < 0.3:
+            continue  # skip too-short scenes
+        text = spec.text[i] if i < n_texts else None
+        effect = _pick_typography(i)
 
-        if seg.label == "Break":
-            # Break: cycle through images with Ken Burns
-            image_file = None
-            if spec.images:
-                image_file = Path(spec.images[image_idx % len(spec.images)]).name
-                image_idx += 1
-            slices.append(SceneSlice(
-                kind="break",
-                start=seg.start,
-                end=seg.end,
-                segment_label=seg.label,
-                segment_intensity=seg.intensity,
-                segment_intensity_label=seg.intensity_label,
-                image=image_file,
-                text=spec.text[text_idx] if text_idx < len(spec.text) else None,
-                transition=next_transition(seed_counter),
-                transition_duration_frames=16,
-            ))
-            if text_idx < len(spec.text):
-                text_idx += 1
-            seed_counter += 1
-            continue
+        # Background: prefer video, fallback image, fallback gradient
+        video_file = None
+        image_file = None
+        bg_kind = "text"
+        if spec.videos:
+            video_file = Path(spec.videos[video_idx % len(spec.videos)]).name
+            video_idx += 1
+            bg_kind = "video"
+        elif spec.images:
+            image_file = Path(spec.images[image_idx % len(spec.images)]).name
+            image_idx += 1
+            bg_kind = "image"
 
-        # Main Variation / Fill In / Intro / Fade In: sub-slice by Cut events
-        cuts_in_seg = [c for c in filtered_cuts if c.start <= c.time < seg.end and c.time >= seg.start and c.time < seg.end] if False else [c for c in filtered_cuts if seg.start <= c.time < seg.end]
+        transition = "fade" if i == 0 else _pick_transition(i)
+        transition_dur = 14 if i == 0 else 14
 
-        slice_starts = [seg.start] + [c.time for c in cuts_in_seg]
-        slice_ends = [c.time for c in cuts_in_seg] + [seg.end]
-
-        for sub_idx, (s_start, s_end) in enumerate(zip(slice_starts, slice_ends)):
-            if s_end - s_start < 0.5:
-                continue  # skip too-short slices
-            # Pick video (cycle)
-            video_file = None
-            if spec.videos:
-                video_file = Path(spec.videos[video_idx % len(spec.videos)]).name
-                video_idx += 1
-            # Pick text (cycle, only on first slice of segment)
-            slice_text = None
-            if sub_idx == 0 and text_idx < len(spec.text):
-                slice_text = spec.text[text_idx]
-                text_idx += 1
-
-            slices.append(SceneSlice(
-                kind="main",
-                start=s_start,
-                end=s_end,
-                segment_label=seg.label,
-                segment_intensity=seg.intensity,
-                segment_intensity_label=seg.intensity_label,
-                video=video_file,
-                text=slice_text,
-                transition=next_transition(seed_counter),
-                transition_duration_frames=14,
-            ))
-            seed_counter += 1
+        slices.append(SceneSlice(
+            kind=bg_kind,
+            start=start,
+            end=end,
+            text=text,
+            effect=effect,
+            video=video_file,
+            image=image_file,
+            transition=transition,
+            transition_duration_frames=transition_dur,
+        ))
 
     return slices
+
 
 
 # ─── Project file templates ──────────────────────────────────────────────────
@@ -285,13 +342,14 @@ def map_content_to_timeline(
 PACKAGE_JSON = """{
   "name": "audio2scene-remotion-project",
   "version": "1.0.0",
-  "description": "Auto-generated Remotion project from audio2scene",
+  "description": "Auto-generated Remotion project from audio2scene — dynamic typography video",
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
     "@remotion/cli": "4.0.484",
     "@remotion/transitions": "4.0.484",
     "@remotion/media": "4.0.484",
+    "@remotion/google-fonts": "4.0.484",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "remotion": "4.0.484"
@@ -320,17 +378,36 @@ TSCONFIG_JSON = """{
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "noUnusedLocals": false
+    "noUnusedLocals": false,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
-  "exclude": ["remotion.config.ts", "node_modules"]
+  "include": ["src/**/*.tsx", "src/**/*.ts"],
+  "exclude": ["remotion.config.ts", "node_modules", "src/lib/**"]
 }
 """
 
 REMOTION_CONFIG_TS = """import { Config } from "@remotion/cli/config";
+import path from "node:path";
 
 Config.setVideoImageFormat("jpeg");
 Config.setOverwriteOutput(true);
 Config.setConcurrency(1);
+
+Config.overrideWebpackConfig((config) => {
+  return {
+    ...config,
+    resolve: {
+      ...config.resolve,
+      alias: {
+        ...(config.resolve?.alias || {}),
+        "@": path.resolve(process.cwd(), "src"),
+      },
+    },
+  };
+});
 """
 
 ROOT_TSX = '''import { Composition } from "remotion";
@@ -977,26 +1054,12 @@ def generate_remotion_project(
         events = [e for e in events if e.time < max_duration]
         print(f"[audio2scene] After truncation: {len(labeled)} segments, {len(events)} events, duration={features.duration:.1f}s")
 
-    # 3. Compute waveform (200 peaks for visualization)
-    import numpy as np
-    n_buckets = 200
-    bucket_size = max(1, len(y) // n_buckets)
-    waveform = []
-    for i in range(n_buckets):
-        s = i * bucket_size
-        e = s + bucket_size
-        chunk = y[s:e]
-        if chunk.size == 0:
-            waveform.append(0.0)
-        else:
-            waveform.append(float(np.max(np.abs(chunk))))
-    peak_max = max(waveform) if waveform else 0.0
-    if peak_max > 0:
-        waveform = [p / peak_max for p in waveform]
-
-    # 4. Map content to timeline
-    slices = map_content_to_timeline(labeled, events, spec, fps=fps)
-    print(f"[audio2scene] Mapped {len(slices)} scenes")
+    # 3. Map content to timeline (text-driven video generator)
+    slices = map_content_to_timeline(
+        labeled, events, spec, fps=fps,
+        total_duration=features.duration,
+    )
+    print(f"[audio2scene] Mapped {len(slices)} text scenes")
 
     # 5. Build timeline.json
     width, height = spec.dimensions
@@ -1004,23 +1067,11 @@ def generate_remotion_project(
         "title": Path(spec.music).stem,
         "duration": round(features.duration, 3),
         "tempo": round(float(features.tempo), 1),
-        "n_segments": len(labeled),
-        "n_events": len(events),
         "fps": fps,
         "width": width,
         "height": height,
+        "font": spec.font,  # Google Font name (e.g. "Inter") or null
         "slices": [asdict(s) for s in slices],
-        "waveform": waveform,
-        "segments": [
-            {
-                "label": s.label,
-                "start": round(s.start, 3),
-                "end": round(s.end, 3),
-                "intensity": round(s.intensity, 3),
-                "intensity_label": s.intensity_label,
-            }
-            for s in labeled
-        ],
     }
 
     # 6. Create project structure
@@ -1042,9 +1093,29 @@ def generate_remotion_project(
         .replace("{width}", str(width))
         .replace("{height}", str(height))
     )
-    # Composition.tsx — read from templates/Composition.tsx (clean JSX, no format())
-    template_path = Path(__file__).parent / "templates" / "Composition.tsx"
-    (output_dir / "src" / "Composition.tsx").write_text(template_path.read_text())
+    # Composition.tsx — read from templates/Composition.tsx (clean JSX)
+    template_dir = Path(__file__).parent / "templates"
+    (output_dir / "src" / "Composition.tsx").write_text(
+        (template_dir / "Composition.tsx").read_text()
+    )
+    # Copy typography components (remocn registry) to output project
+    components_src = template_dir / "components" / "remocn"
+    components_dst = output_dir / "src" / "components" / "remocn"
+    components_dst.mkdir(parents=True, exist_ok=True)
+    if components_src.exists():
+        for f in components_src.glob("*.tsx"):
+            shutil.copy(str(f), str(components_dst / f.name))
+    # Copy remocn-ui lib (shared dependency)
+    lib_src = template_dir / "lib"
+    lib_dst = output_dir / "src" / "lib"
+    lib_dst.mkdir(parents=True, exist_ok=True)
+    if lib_src.exists():
+        for f in lib_src.rglob("*"):
+            if f.is_file():
+                rel = f.relative_to(lib_src)
+                dst = lib_dst / rel
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy(str(f), str(dst))
 
     # 8. Copy assets
     shutil.copy(str(music_path), str(output_dir / "public" / "audio.mp3"))
