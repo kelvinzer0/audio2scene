@@ -345,8 +345,8 @@ const IntroScene: React.FC<{ slice: SceneSlice; timeline: Timeline }> = ({ slice
         </AbsoluteFill>
       )}
 
-      {/* Title text below logo (if no logo, center the text) */}
-      {slice.text && (
+      {/* Title text below logo — ONLY if no logo provided */}
+      {!timeline.logo && slice.text && (
         <AbsoluteFill
           style={{
             display: "flex",
