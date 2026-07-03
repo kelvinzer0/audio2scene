@@ -96,14 +96,25 @@ data.json format:
   {
     "music": "song.mp3",
     "screen": "1280:720",
+    "duration": "60s",
+    "font": "Inter",
     "text": ["Title", "Verse 1", "Chorus", "Outro"],
     "videos": ["clip1.mp4", "clip2.mp4"],
     "images": ["bg1.jpg", "bg2.png"]
   }
 
-Example:
-  audio2scene generate-remotion --input data.json --output ./my-video
-  cd my-video && npm install && npx remotion render Audio2ScenePreview out/video.mp4
+Examples:
+  # Generate project only
+  audio2scene generate-remotion -i data.json -o ./my-video
+
+  # Generate + install deps + render MP4 (single command)
+  audio2scene generate-remotion -i data.json -o ./my-video --render
+
+  # Fast render (quarter-res, 4x faster, for sandbox/preview)
+  audio2scene generate-remotion -i data.json -o ./my-video --render --fast
+
+  # Render only first 30s (900 frames)
+  audio2scene generate-remotion -i data.json -o ./my-video --render --fast --frames=0-900
 """,
     )
     parser.add_argument("--input", "-i", required=True, help="Path to data.json")
@@ -111,23 +122,92 @@ Example:
     parser.add_argument("--hop-length", type=int, default=1024, help="Hop length (default 1024)")
     parser.add_argument("--min-segment", type=float, default=5.0, help="Min segment length in seconds (default 5.0)")
     parser.add_argument("--fps", type=int, default=30, help="Frames per second (default 30)")
+    parser.add_argument("--render", action="store_true",
+                        help="After generating, run npm install + render MP4 automatically")
+    parser.add_argument("--fast", action="store_true",
+                        help="Fast render: scale=0.25 (quarter-res), 4x faster. Use with --render")
+    parser.add_argument("--scale", type=float, default=None,
+                        help="Render scale 0.25-1.0 (overrides --fast). Default 0.5")
+    parser.add_argument("--frames", type=str, default=None,
+                        help="Frame range to render, e.g. '0-900' for first 30s. Default: full duration")
     sub_args = parser.parse_args(args)
 
     try:
-        generate_remotion_project(
+        project_dir = generate_remotion_project(
             sub_args.input,
             sub_args.output,
             hop_length=sub_args.hop_length,
             min_segment_sec=sub_args.min_segment,
             fps=sub_args.fps,
         )
-        return 0
     except FileNotFoundError as e:
         print(f"Error: {e}", file=sys.stderr)
         return 2
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
+
+    if sub_args.render:
+        return _render_project(project_dir, sub_args)
+    return 0
+
+
+def _render_project(project_dir, args) -> int:
+    """Run npm install + remotion render inside the generated project."""
+    import subprocess
+    import shutil
+    from pathlib import Path
+
+    npm = shutil.which("npm")
+    npx = shutil.which("npx")
+    if not npm or not npx:
+        print("Error: npm/npx not found. Install Node.js to use --render", file=sys.stderr)
+        return 3
+
+    # Determine render params
+    if args.scale is not None:
+        scale = args.scale
+    elif args.fast:
+        scale = 0.25
+    else:
+        scale = 0.5
+
+    project_dir = Path(project_dir)
+    print(f"\n[audio2scene] Installing dependencies in {project_dir}...")
+    r = subprocess.run([npm, "install", "--silent"], cwd=str(project_dir))
+    if r.returncode != 0:
+        print("Error: npm install failed", file=sys.stderr)
+        return r.returncode
+
+    # Install extra dev deps for typography components
+    subprocess.run([npm, "install", "--silent", "--save-dev", "@types/culori", "culori"],
+                   cwd=str(project_dir))
+
+    # Build output path
+    output_mp4 = str(project_dir / "out" / "video.mp4")
+    (project_dir / "out").mkdir(exist_ok=True)
+
+    # Build render command
+    cmd = [npx, "remotion", "render", "Audio2ScenePreview", output_mp4,
+           f"--scale={scale}", "--timeout=60000", "--concurrency=2"]
+    if args.frames:
+        cmd.append(f"--frames={args.frames}")
+
+    print(f"[audio2scene] Rendering MP4 (scale={scale})...")
+    print(f"[audio2scene] Output: {output_mp4}")
+    print()
+
+    r = subprocess.run(cmd, cwd=str(project_dir))
+    if r.returncode != 0:
+        print(f"Error: render failed (exit {r.returncode})", file=sys.stderr)
+        return r.returncode
+
+    # Verify
+    out_path = project_dir / "out" / "video.mp4"
+    if out_path.exists():
+        size_mb = out_path.stat().st_size / (1024 * 1024)
+        print(f"\n[audio2scene] DONE — {output_mp4} ({size_mb:.1f} MB)")
+    return 0
 
 
 def _cmd_analyze(args: List[str]) -> int:
