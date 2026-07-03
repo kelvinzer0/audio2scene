@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>audio2scene Dynamic Typography Video</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a0f;
+    background-image: radial-gradient(circle at 20% 30%, rgba(236, 72, 153, 0.12) 0%, transparent 40%),
+                      radial-gradient(circle at 80% 70%, rgba(34, 211, 238, 0.12) 0%, transparent 40%);
+    color: #f1f5f9;
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    min-height: 100vh; line-height: 1.6; padding: 40px 20px;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  .header { text-align: center; margin-bottom: 40px; padding-bottom: 32px; border-bottom: 1px solid #2a2a3a; }
+  .badge { display: inline-block; padding: 6px 14px; background: rgba(236, 72, 153, 0.15); border: 1px solid #ec4899; border-radius: 100px; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #ec4899; margin-bottom: 20px; }
+  h1 { font-size: 42px; font-weight: 800; background: linear-gradient(135deg, #ec4899 0%, #a855f7 50%, #22d3ee 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 12px; }
+  .subtitle { font-size: 15px; color: #94a3b8; margin-bottom: 16px; }
+  .desc { max-width: 700px; margin: 12px auto 0; font-size: 14px; opacity: 0.85; }
+  .back-link { display: inline-block; margin-top: 20px; padding: 8px 18px; background: #15151f; border: 1px solid #2a2a3a; border-radius: 6px; color: #f1f5f9; text-decoration: none; font-size: 13px; font-weight: 600; }
+  .back-link:hover { border-color: #ec4899; }
+  .section { margin-bottom: 40px; }
+  .section-title { font-size: 22px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+  .section-title::before { content: ''; width: 4px; height: 22px; background: linear-gradient(180deg, #ec4899, #22d3ee); border-radius: 2px; }
+  .section-desc { color: #94a3b8; font-size: 13px; margin-bottom: 20px; }
+  .video-card { background: #15151f; border: 1px solid #2a2a3a; border-radius: 14px; overflow: hidden; margin-bottom: 20px; }
+  .video-card-header { padding: 14px 20px; border-bottom: 1px solid #2a2a3a; display: flex; justify-content: space-between; align-items: center; }
+  .video-card-title { font-size: 15px; font-weight: 700; }
+  .video-card-meta { font-size: 12px; color: #94a3b8; font-family: monospace; }
+  .video-wrap { position: relative; background: #000; aspect-ratio: 16/9; }
+  video { width: 100%; height: 100%; display: block; }
+  .video-footer { padding: 12px 20px; font-size: 12px; color: #94a3b8; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .tag { display: inline-block; padding: 3px 8px; background: rgba(236, 72, 153, 0.15); border: 1px solid #ec4899; border-radius: 4px; color: #ec4899; font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; font-family: monospace; }
+  .frames-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
+  .frame-card { background: #15151f; border: 1px solid #2a2a3a; border-radius: 10px; overflow: hidden; transition: all 0.2s; }
+  .frame-card:hover { border-color: #ec4899; transform: translateY(-2px); }
+  .frame-card img { width: 100%; height: 140px; object-fit: cover; display: block; }
+  .frame-card-body { padding: 10px 14px; }
+  .frame-card-title { font-size: 12px; font-weight: 700; margin-bottom: 3px; }
+  .frame-card-meta { font-size: 10px; color: #94a3b8; font-family: monospace; }
+  .effects-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
+  .effect-chip { padding: 8px 12px; background: #15151f; border: 1px solid #2a2a3a; border-radius: 6px; font-size: 12px; font-family: monospace; color: #cbd5e1; }
+  .effect-chip:hover { border-color: #ec4899; color: #ec4899; }
+  .code-block { background: #0d0d14; border: 1px solid #2a2a3a; border-radius: 8px; padding: 16px; font-family: monospace; font-size: 12px; color: #cbd5e1; overflow-x: auto; line-height: 1.6; }
+  .code-string { color: #4ade80; }
+  .code-comment { color: #64748b; }
+  .footer { text-align: center; padding: 28px 0 14px; border-top: 1px solid #2a2a3a; color: #94a3b8; font-size: 12px; }
+  .footer a { color: #ec4899; text-decoration: none; }
+  @media (max-width: 768px) { h1 { font-size: 28px; } body { padding: 16px 10px; } }
+</style>
+</head>
+<body>
+<div class="container">
+  <header class="header">
+    <div class="badge">◆ Dynamic Typography Video</div>
+    <h1>Text-Driven Video Generator</h1>
+    <div class="subtitle">
+      <strong style="color: #ec4899;">data.json</strong> → audio2scene → 30 remocn typography effects → Remotion MP4
+    </div>
+    <p class="desc">
+      This is a DYNAMIC VIDEO GENERATOR, not a music player. Each entry in <code>text[]</code> becomes
+      one scene rendered with a random typography effect from the remocn registry (30 components total).
+      Music analysis only decides WHEN scenes change — the visible UI is pure typography.
+      No segment labels, no intensity badges, no time/BPM displays.
+    </p>
+    <a href="../" class="back-link">← Main preview</a>
+    <a href="../auto-editor-preview/" class="back-link" style="margin-left: 8px;">← Auto-editor (v0.5)</a>
+  </header>
+
+  <section class="section">
+    <h2 class="section-title">Rendered MP4 (15s preview)</h2>
+    <p class="section-desc">
+      4 text scenes, each with a different random typography effect from the remocn registry.
+      Background: Pixabay stock videos cycled through scenes. Font: Inter (Google Fonts).
+    </p>
+    <div class="video-card">
+      <div class="video-card-header">
+        <div class="video-card-title">DEMI - HomeBody · Dynamic Typography</div>
+        <div class="video-card-meta">15s · 640×360 · 4.2 MB · 30 typography effects</div>
+      </div>
+      <div class="video-wrap">
+        <video controls preload="metadata" poster="typo-preview/typo-frame-050.png">
+          <source src="typo-preview/typo-preview-15s.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="video-footer">
+        <div>
+          <span class="tag">TYPOGRAPHY</span>
+          <span style="margin-left: 10px;">4 scenes · random effect per scene · font: Inter</span>
+        </div>
+        <div>Music: archive.org · B-roll: Pixabay · Effects: remocn registry</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2 class="section-title">Frame Stills</h2>
+    <p class="section-desc">Each frame shows a different typography effect on a different text scene.</p>
+    <div class="frames-grid">
+      <div class="frame-card">
+        <img src="typo-preview/typo-frame-050.png" alt="Scene 1">
+        <div class="frame-card-body">
+          <div class="frame-card-title">Scene 1 · Title</div>
+          <div class="frame-card-meta">frame 50 · 1.7s</div>
+        </div>
+      </div>
+      <div class="frame-card">
+        <img src="typo-preview/typo-frame-100.png" alt="Scene 1 mid">
+        <div class="frame-card-body">
+          <div class="frame-card-title">Scene 1 · Mid</div>
+          <div class="frame-card-meta">frame 100 · 3.3s</div>
+        </div>
+      </div>
+      <div class="frame-card">
+        <img src="typo-preview/typo-frame-300.png" alt="Scene 2">
+        <div class="frame-card-body">
+          <div class="frame-card-title">Scene 2 · Late night vibes</div>
+          <div class="frame-card-meta">frame 300 · 10s</div>
+        </div>
+      </div>
+      <div class="frame-card">
+        <img src="typo-preview/typo-frame-600.png" alt="Scene 3">
+        <div class="frame-card-body">
+          <div class="frame-card-title">Scene 3 · City lights</div>
+          <div class="frame-card-meta">frame 600 · 20s</div>
+        </div>
+      </div>
+      <div class="frame-card">
+        <img src="typo-preview/typo-frame-1200.png" alt="Scene 4">
+        <div class="frame-card-body">
+          <div class="frame-card-title">Scene 4 · Feel the rhythm</div>
+          <div class="frame-card-meta">frame 1200 · 40s</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2 class="section-title">30 Typography Effects Pool</h2>
+    <p class="section-desc">Random pick from these remocn registry components for each scene.</p>
+    <div class="effects-grid">
+      <div class="effect-chip">soft-blur-in</div>
+      <div class="effect-chip">per-character-rise</div>
+      <div class="effect-chip">bottom-up-letters</div>
+      <div class="effect-chip">top-down-letters</div>
+      <div class="effect-chip">spring-scale-in</div>
+      <div class="effect-chip">micro-scale-fade</div>
+      <div class="effect-chip">scale-down-fade</div>
+      <div class="effect-chip">blur-out-up</div>
+      <div class="effect-chip">focus-blur-resolve</div>
+      <div class="effect-chip">line-by-line-slide</div>
+      <div class="effect-chip">per-word-crossfade</div>
+      <div class="effect-chip">fade-through</div>
+      <div class="effect-chip">shared-axis-y</div>
+      <div class="effect-chip">shared-axis-z</div>
+      <div class="effect-chip">short-slide-right</div>
+      <div class="effect-chip">kinetic-center-build</div>
+      <div class="effect-chip">short-slide-down</div>
+      <div class="effect-chip">staggered-fade-up</div>
+      <div class="effect-chip">mask-reveal-up</div>
+      <div class="effect-chip">tracking-in</div>
+      <div class="effect-chip">inline-highlight</div>
+      <div class="effect-chip">marker-highlight</div>
+      <div class="effect-chip">shimmer-sweep</div>
+      <div class="effect-chip">typewriter</div>
+      <div class="effect-chip">slot-machine-roll</div>
+      <div class="effect-chip">infinite-marquee</div>
+      <div class="effect-chip">perspective-marquee</div>
+      <div class="effect-chip">matrix-decode</div>
+      <div class="effect-chip">rgb-glitch-text</div>
+      <div class="effect-chip">rolling-number</div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2 class="section-title">data.json spec</h2>
+    <p class="section-desc">The input that generated this video. Note the new <code>font</code> field.</p>
+    <div class="code-block">
+<span class="code-comment">// data.json</span>
+{
+  <span class="code-string">"music"</span>: <span class="code-string">"music.mp3"</span>,
+  <span class="code-string">"screen"</span>: <span class="code-string">"1280:720"</span>,
+  <span class="code-string">"duration"</span>: <span class="code-string">"60s"</span>,
+  <span class="code-string">"font"</span>: <span class="code-string">"Inter"</span>,  <span class="code-comment">// ← Google Font name from @remotion/google-fonts</span>
+  <span class="code-string">"text"</span>: [
+    <span class="code-string">"DEMI - HomeBody"</span>,
+    <span class="code-string">"Late night vibes"</span>,
+    <span class="code-string">"City lights calling"</span>,
+    <span class="code-string">"Feel the rhythm"</span>,
+    <span class="code-string">"Thanks for watching"</span>
+  ],
+  <span class="code-string">"videos"</span>: [<span class="code-string">"videos/shanghai_212404.mp4"</span>, ...],
+  <span class="code-string">"images"</span>: []
+}
+    </div>
+  </section>
+
+  <footer class="footer">
+    Powered by <a href="https://github.com/kelvinzer0/audio2scene">audio2scene</a>
+    · Typography: <a href="https://github.com/kapishdima/remocn">remocn registry</a>
+    · Font: <a href="https://fonts.google.com/specimen/Inter">Inter (Google Fonts)</a>
+    · Rendered with <a href="https://remotion.dev">Remotion</a>
+  </footer>
+</div>
+</body>
+</html>
