@@ -169,6 +169,7 @@ Turn a `data.json` spec into a complete Remotion project. Provide music + text +
 {
   "music": "song.mp3",
   "screen": "1280:720",
+  "duration": "60s",
   "text": ["Song Title", "Verse 1 lyrics", "Chorus hook", "Outro text"],
   "videos": ["clip1.mp4", "clip2.mp4", "clip3.mp4"],
   "images": ["bg1.jpg", "bg2.png"]
@@ -176,6 +177,17 @@ Turn a `data.json` spec into a complete Remotion project. Provide music + text +
 ```
 
 All paths are relative to the `data.json` file.
+
+### Fields
+
+| Field | Required | Default | Description |
+|---|---|---|---|
+| `music` | yes | — | Path to audio file (mp3/wav/flac/ogg/aac/m4a) |
+| `screen` | no | `"1280:720"` | Output resolution as `"W:H"` |
+| `duration` | no | full song | Max render duration. Accepts: `60`, `"60s"`, `"2m"`, `"1.5m"`. Truncates audio, segments, and events. |
+| `text` | no | `[]` | Text overlays. `text[0]` = title, `text[-1]` = outro, middle = per-scene captions |
+| `videos` | no | `[]` | B-roll videos cycled through Main Variation segments |
+| `images` | no | `[]` | Background images for Break segments (Ken Burns effect) |
 
 ### CLI
 

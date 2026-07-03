@@ -62,6 +62,7 @@ class DataSpec:
     text: List[str] = None
     videos: List[str] = None
     images: List[str] = None
+    duration: Optional[float] = None  # max render duration in seconds (None = full song)
 
     @classmethod
     def from_dict(cls, d: dict) -> "DataSpec":
@@ -71,12 +72,40 @@ class DataSpec:
             text=d.get("text", []) or [],
             videos=d.get("videos", []) or [],
             images=d.get("images", []) or [],
+            duration=_parse_duration(d.get("duration")),
         )
 
     @property
     def dimensions(self) -> Tuple[int, int]:
         w, h = self.screen.split(":")
         return int(w), int(h)
+
+
+def _parse_duration(value) -> Optional[float]:
+    """Parse duration field. Accepts:
+    - None / missing → full song
+    - int/float (seconds): 120, 60.5
+    - str with unit: "120s", "2m", "1.5m", "90s"
+    - str number: "120"
+    """
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        s = value.strip().lower()
+        if not s:
+            return None
+        # Strip trailing unit
+        if s.endswith("s"):
+            return float(s[:-1])
+        if s.endswith("m"):
+            return float(s[:-1]) * 60.0
+        if s.endswith("h"):
+            return float(s[:-1]) * 3600.0
+        # Plain number string
+        return float(s)
+    return None
 
 
 @dataclass
@@ -922,6 +951,31 @@ def generate_remotion_project(
     labeled = classify_segments(features, segments)
     events = map_video_events(labeled, features)
     print(f"[audio2scene] {len(labeled)} segments, {len(events)} events, {features.tempo:.1f} BPM")
+
+    # 2b. Apply duration limit if specified in data.json
+    # Truncates audio, segments, events, and features to the requested duration.
+    # Useful for rendering short previews (e.g. duration: "60s") without full song.
+    max_duration = spec.duration
+    if max_duration is not None and max_duration < features.duration:
+        print(f"[audio2scene] Limiting render to {max_duration:.1f}s (full song: {features.duration:.1f}s)")
+        # Truncate audio samples
+        y = y[: int(max_duration * sr)]
+        # Re-extract features from truncated audio (so duration field is correct)
+        features = extract_features(y=y, sr=sr, hop_length=hop_length)
+        # Truncate segments: keep those starting before max_duration, clamp end
+        truncated_segments: List[Segment] = []
+        for seg in segments:
+            if seg.start >= max_duration:
+                break
+            new_end = min(seg.end, max_duration)
+            if new_end > seg.start:
+                truncated_segments.append(Segment(start=seg.start, end=new_end))
+        segments = truncated_segments
+        # Re-classify on truncated segments (intensity needs song-level stats from truncated audio)
+        labeled = classify_segments(features, segments)
+        # Truncate events: keep those before max_duration
+        events = [e for e in events if e.time < max_duration]
+        print(f"[audio2scene] After truncation: {len(labeled)} segments, {len(events)} events, duration={features.duration:.1f}s")
 
     # 3. Compute waveform (200 peaks for visualization)
     import numpy as np
