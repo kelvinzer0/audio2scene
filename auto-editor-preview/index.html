@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>audio2scene Auto Video Editor — Pixabay B-roll</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a0f;
+    background-image: radial-gradient(circle at 20% 30%, rgba(74, 222, 128, 0.12) 0%, transparent 40%),
+                      radial-gradient(circle at 80% 70%, rgba(168, 85, 247, 0.12) 0%, transparent 40%);
+    color: #f1f5f9;
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    min-height: 100vh; line-height: 1.6; padding: 40px 20px;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  .header { text-align: center; margin-bottom: 40px; padding-bottom: 32px; border-bottom: 1px solid #2a2a3a; }
+  .badge { display: inline-block; padding: 6px 14px; background: rgba(74, 222, 128, 0.15); border: 1px solid #4ade80; border-radius: 100px; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #4ade80; margin-bottom: 20px; }
+  h1 { font-size: 42px; font-weight: 800; background: linear-gradient(135deg, #4ade80 0%, #22d3ee 50%, #a855f7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 12px; }
+  .subtitle { font-size: 15px; color: #94a3b8; margin-bottom: 16px; }
+  .desc { max-width: 700px; margin: 12px auto 0; font-size: 14px; opacity: 0.85; }
+  .back-link { display: inline-block; margin-top: 20px; padding: 8px 18px; background: #15151f; border: 1px solid #2a2a3a; border-radius: 6px; color: #f1f5f9; text-decoration: none; font-size: 13px; font-weight: 600; }
+  .back-link:hover { border-color: #4ade80; }
+  .section { margin-bottom: 40px; }
+  .section-title { font-size: 22px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+  .section-title::before { content: ''; width: 4px; height: 22px; background: linear-gradient(180deg, #4ade80, #a855f7); border-radius: 2px; }
+  .section-desc { color: #94a3b8; font-size: 13px; margin-bottom: 20px; }
+  .video-card { background: #15151f; border: 1px solid #2a2a3a; border-radius: 14px; overflow: hidden; margin-bottom: 20px; }
+  .video-card-header { padding: 14px 20px; border-bottom: 1px solid #2a2a3a; display: flex; justify-content: space-between; align-items: center; }
+  .video-card-title { font-size: 15px; font-weight: 700; }
+  .video-card-meta { font-size: 12px; color: #94a3b8; font-family: monospace; }
+  .video-wrap { position: relative; background: #000; aspect-ratio: 16/9; }
+  video { width: 100%; height: 100%; display: block; }
+  .video-footer { padding: 12px 20px; font-size: 12px; color: #94a3b8; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .tag { display: inline-block; padding: 3px 8px; background: rgba(74, 222, 128, 0.15); border: 1px solid #4ade80; border-radius: 4px; color: #4ade80; font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; font-family: monospace; }
+  .frames-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
+  .frame-card { background: #15151f; border: 1px solid #2a2a3a; border-radius: 10px; overflow: hidden; transition: all 0.2s; }
+  .frame-card:hover { border-color: #4ade80; transform: translateY(-2px); }
+  .frame-card img { width: 100%; height: 140px; object-fit: cover; display: block; }
+  .frame-card-body { padding: 10px 14px; }
+  .frame-card-title { font-size: 12px; font-weight: 700; margin-bottom: 3px; }
+  .frame-card-meta { font-size: 10px; color: #94a3b8; font-family: monospace; }
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-bottom: 28px; }
+  .stat { background: #15151f; border: 1px solid #2a2a3a; border-radius: 8px; padding: 14px; text-align: center; }
+  .stat-value { font-size: 26px; font-weight: 800; color: #4ade80; font-family: monospace; }
+  .stat-label { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+  .code-block { background: #0d0d14; border: 1px solid #2a2a3a; border-radius: 8px; padding: 16px; font-family: monospace; font-size: 12px; color: #cbd5e1; overflow-x: auto; line-height: 1.6; }
+  .code-comment { color: #64748b; }
+  .code-string { color: #4ade80; }
+  .footer { text-align: center; padding: 28px 0 14px; border-top: 1px solid #2a2a3a; color: #94a3b8; font-size: 12px; }
+  .footer a { color: #4ade80; text-decoration: none; }
+  @media (max-width: 768px) { h1 { font-size: 28px; } body { padding: 16px 10px; } }
+</style>
+</head>
+<body>
+<div class="container">
+  <header class="header">
+    <div class="badge">◆ v0.5 Auto Video Editor</div>
+    <h1>Pixabay B-roll Auto-Edit</h1>
+    <div class="subtitle">
+      <strong style="color: #4ade80;">data.json</strong> → audio2scene → Remotion → MP4
+    </div>
+    <p class="desc">
+      This video was generated entirely from a <code>data.json</code> spec containing music + text + 8 stock videos + 9 stock images
+      from <a href="https://pixabay.com" style="color: #4ade80;">Pixabay</a>. audio2scene analyzed the music structure (15 segments, 433 events),
+      mapped the content to scenes, and rendered a Remotion composition with random transitions — fully automatic.
+    </p>
+    <a href="../" class="back-link">← Back to main preview</a>
+    <a href="../remotion-preview/" class="back-link" style="margin-left: 8px;">← Remotion v3 preview</a>
+  </header>
+
+  <section class="section">
+    <h2 class="section-title">Rendered MP4 (15s preview)</h2>
+    <p class="section-desc">
+      First 15 seconds of the auto-edited video. Full composition is 2:21. Real Pixabay stock footage as B-roll,
+      cycled through Main Variation segments. Images with Ken Burns effect during Break segments.
+    </p>
+    <div class="video-card">
+      <div class="video-card-header">
+        <div class="video-card-title">DEMI - HomeBody · Auto-Edit with Pixabay B-roll</div>
+        <div class="video-card-meta">15s · 640×360 · 3.9 MB · 8 videos + 9 images</div>
+      </div>
+      <div class="video-wrap">
+        <video controls preload="metadata" poster="auto-editor-preview/pixabay-frame-50.png">
+          <source src="auto-editor-preview/preview-pixabay-15s.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="video-footer">
+        <div>
+          <span class="tag">PIXABAY</span>
+          <span style="margin-left: 10px;">49 scenes · 12 random transition types · 3s Cut rule</span>
+        </div>
+        <div>Music: DEMI - HomeBody (archive.org) · B-roll: Pixabay API</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2 class="section-title">Stats</h2>
+    <div class="stats-row">
+      <div class="stat"><div class="stat-value">2:21</div><div class="stat-label">Duration</div></div>
+      <div class="stat"><div class="stat-value">117.5</div><div class="stat-label">BPM</div></div>
+      <div class="stat"><div class="stat-value">15</div><div class="stat-label">Segments</div></div>
+      <div class="stat"><div class="stat-value">49</div><div class="stat-label">Scenes</div></div>
+      <div class="stat"><div class="stat-value">8</div><div class="stat-label">Videos</div></div>
+      <div class="stat"><div class="stat-value">9</div><div class="stat-label">Images</div></div>
+      <div class="stat"><div class="stat-value">12</div><div class="stat-label">Transition Types</div></div>
+      <div class="stat"><div class="stat-value">7</div><div class="stat-label">Text Overlays</div></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2 class="section-title">Frame Stills</h2>
+    <p class="section-desc">Frames from different scene types: Title, Main (video B-roll), Break (image Ken Burns).</p>
+    <div class="frames-grid">
+      <div class="frame-card">
+        <img src="auto-editor-preview/pixabay-frame-50.png" alt="Title">
+        <div class="frame-card-body">
+          <div class="frame-card-title">Title Scene</div>
+          <div class="frame-card-meta">frame 50 · 1.7s · text[0]</div>
+        </div>
+      </div>
+      <div class="frame-card">
+        <img src="auto-editor-preview/pixabay-frame-150.png" alt="Main">
+        <div class="frame-card-body">
+          <div class="frame-card-title">Main + Video B-roll</div>
+          <div class="frame-card-meta">frame 150 · 5s · city night</div>
+        </div>
+      </div>
+      <div class="frame-card">
+        <img src="auto-editor-preview/pixabay-frame-300.png" alt="Main">
+        <div class="frame-card-body">
+          <div class="frame-card-title">Main + Video B-roll</div>
+          <div class="frame-card-meta">frame 300 · 10s · neon lights</div>
+        </div>
+      </div>
+      <div class="frame-card">
+        <img src="auto-editor-preview/pixabay-frame-600.png" alt="Break">
+        <div class="frame-card-body">
+          <div class="frame-card-title">Break + Image (Ken Burns)</div>
+          <div class="frame-card-meta">frame 600 · 20s · abstract</div>
+        </div>
+      </div>
+      <div class="frame-card">
+        <img src="auto-editor-preview/pixabay-frame-1200.png" alt="Late">
+        <div class="frame-card-body">
+          <div class="frame-card-title">Late Main</div>
+          <div class="frame-card-meta">frame 1200 · 40s · street traffic</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2 class="section-title">data.json spec</h2>
+    <p class="section-desc">The input that generated this video. Just music + text + videos + images.</p>
+    <div class="code-block">
+<span class="code-comment">// data.json</span>
+{
+  <span class="code-string">"music"</span>: <span class="code-string">"music.mp3"</span>,
+  <span class="code-string">"screen"</span>: <span class="code-string">"1280:720"</span>,
+  <span class="code-string">"text"</span>: [<span class="code-string">"DEMI - HomeBody"</span>, <span class="code-string">"Late night vibes"</span>, <span class="code-string">"City lights calling"</span>, ...],
+  <span class="code-string">"videos"</span>: [<span class="code-string">"videos/shanghai_212404.mp4"</span>, <span class="code-string">"videos/city_3134.mp4"</span>, ...],
+  <span class="code-string">"images"</span>: [<span class="code-string">"images/clouds_2517653.jpg"</span>, <span class="code-string">"images/buildings_1839726.jpg"</span>, ...]
+}
+    </div>
+  </section>
+
+  <section class="section">
+    <h2 class="section-title">Pipeline</h2>
+    <div class="code-block">
+<span class="code-comment"># 1. Fetch stock media from Pixabay API</span>
+python3 fetch_pixabay_assets.py  <span class="code-comment"># → 8 videos + 9 images</span>
+
+<span class="code-comment"># 2. Write data.json spec</span>
+<span class="code-keyword">echo</span> '{ "music": "music.mp3", "text": [...], "videos": [...], "images": [...] }' > data.json
+
+<span class="code-comment"># 3. Generate Remotion project (audio2scene v0.5)</span>
+audio2scene generate-remotion --input data.json --output ./my-video
+
+<span class="code-comment"># 4. Render MP4</span>
+<span class="code-keyword">cd</span> my-video && npm install
+npx remotion render Audio2ScenePreview out/video.mp4
+    </div>
+  </section>
+
+  <footer class="footer">
+    Powered by <a href="https://github.com/kelvinzer0/audio2scene">audio2scene v0.5.0</a>
+    · Music: archive.org · B-roll: <a href="https://pixabay.com">Pixabay</a> · Rendered with <a href="https://remotion.dev">Remotion</a>
+  </footer>
+</div>
+</body>
+</html>
