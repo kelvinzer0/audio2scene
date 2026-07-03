@@ -4,6 +4,8 @@
 
 Audio2Scene analyzes an audio file and produces a timeline of structural labels — Intro, Main Variation A/B/C/D, Fill In, Break, Ending, Fade In, Fade Out — that can be consumed by AI video editors, DAW plugins, arranger keyboards, content creators, and multimedia researchers.
 
+**New in v0.5**: `generate-remotion` command — turn a `data.json` spec into a complete Remotion project. Provide music + text + videos + images, get back a ready-to-render auto-edited video.
+
 **New in v0.4**: Video editor effect events — `Cut`, `Flash`, `Zoom`, `Glitch`, `Hold`, `Fade In`, `Fade Out`, `Title` — by mapping beats, onsets, and segment intensity to NLE-ready transitions.
 
 **Live demo**: https://kelvinzer0.github.io/audio2scene/
@@ -46,6 +48,11 @@ audio2scene music.mp3 --txt
 
 # Video editor events (v0.4+)
 audio2scene music.mp3 --video-editor -o events.json
+
+# Auto video editor (v0.5+) — generate Remotion project from data.json
+audio2scene generate-remotion --input data.json --output ./my-video
+cd my-video && npm install
+npx remotion render Audio2ScenePreview out/video.mp4
 
 # Write to file
 audio2scene music.mp3 --json -o labels.json
@@ -151,6 +158,80 @@ for ev in events:
 summary = audio2scene.events_summary(events)
 # {'n_events': 808, 'by_effect': {'Cut': 770, 'Flash': 34, ...}, 'density_per_sec': 3.77}
 ```
+
+## Auto Video Editor (v0.5+)
+
+Turn a `data.json` spec into a complete Remotion project. Provide music + text + videos + images → get back a ready-to-render auto-edited video.
+
+### data.json format
+
+```json
+{
+  "music": "song.mp3",
+  "screen": "1280:720",
+  "text": ["Song Title", "Verse 1 lyrics", "Chorus hook", "Outro text"],
+  "videos": ["clip1.mp4", "clip2.mp4", "clip3.mp4"],
+  "images": ["bg1.jpg", "bg2.png"]
+}
+```
+
+All paths are relative to the `data.json` file.
+
+### CLI
+
+```bash
+audio2scene generate-remotion --input data.json --output ./my-video
+cd my-video
+npm install
+npx remotion studio          # interactive preview
+npx remotion render Audio2ScenePreview out/video.mp4
+```
+
+### Python API
+
+```python
+from audio2scene import generate_remotion_project
+
+generate_remotion_project("data.json", "./my-video")
+```
+
+### Content mapping strategy
+
+| Scene type | Source | Content mapped |
+|---|---|---|
+| Title (first 3s) | Intro / Fade In segment | `text[0]` + song title |
+| Main Variation slices | Cycled through `videos[]` | 1 video per slice, cut on segment boundary |
+| Break | Low-energy segment | Cycled `images[]` with Ken Burns effect |
+| Ending | Last segment | `text[-1]` + Fade Out |
+| Cut events (filtered, 3s rule) | Sub-slice Main segments | Random transition between slices |
+
+### Generated project structure
+
+```
+my-video/
+├── package.json              # deps: remotion, @remotion/transitions, @remotion/media
+├── tsconfig.json
+├── remotion.config.ts
+├── README.md                 # setup + render instructions
+├── src/
+│   ├── index.ts
+│   ├── Root.tsx              # dimensions + duration from audio2scene
+│   └── Composition.tsx       # data-driven, reads public/timeline.json
+└── public/
+    ├── audio.mp3
+    ├── timeline.json         # audio2scene analysis + content mapping
+    ├── videos/               # your B-roll videos
+    └── images/               # your background images
+```
+
+The `timeline.json` is the bridge between audio2scene analysis and the Remotion composition. Edit it to tweak the mapping, then re-render.
+
+### Transitions (12 types)
+
+Random transition fires between every scene slice:
+- `fade`, `slideLeft`, `slideRight`, `slideUp`, `slideDown`
+- `zoomIn`, `zoomOut`, `irisWipe`
+- `whipPan`, `whipPanRight`, `pushThrough`, `focusPull`
 
 ## Supported labels
 
