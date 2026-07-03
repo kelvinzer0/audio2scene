@@ -415,12 +415,16 @@ def map_content_to_timeline(
     # === Assign content per scene ===
     video_idx = 0
     image_idx = 0
+    text_idx = 0  # track text index separately from scene index
 
     for i, (start, end) in enumerate(zip(scene_starts, scene_ends)):
         if end - start < 0.3:
             continue  # skip too-short scenes
-        text = spec.text[i] if i < n_texts else None
-        effect = pick_typography_by_text(text or "", i)
+        text = spec.text[text_idx] if text_idx < n_texts else None
+        # Use text_idx for effect selection (so rule "scene pertama" applies to first TEXT, not first slice)
+        effect = pick_typography_by_text(text or "", text_idx)
+        if text_idx < n_texts:
+            text_idx += 1
 
         # Background: prefer video, fallback image, fallback gradient
         video_file = None
