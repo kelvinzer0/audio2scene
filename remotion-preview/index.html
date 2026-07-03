@@ -343,14 +343,80 @@
   </header>
 
   <section class="section">
-    <h2 class="section-title">v2 Preview — with remocn components</h2>
+    <h2 class="section-title">v3 Preview — random transitions on every Cut (3s rule)</h2>
     <p class="section-desc">
-      <strong style="color: var(--accent);">NEW</strong> — Rebuilt composition using
-      <a href="https://github.com/kapishdima/remocn" style="color: var(--accent);">remocn</a>
-      shadcn-style components: <code>ShaderMeshGradient</code> backgrounds,
-      <code>SoftBlurIn</code> text reveals, <code>KineticCenterBuild</code> segment labels,
-      <code>NumberWheel</code> stat counters, <code>whipPan</code> transitions between scenes.
-      Each segment now has its own animated shader background that color-shifts with the music.
+      <strong style="color: var(--accent);">LATEST</strong> — Cut events filtered to max 1 per 3 seconds (was 1.8s, too dense).
+      Each filtered Cut now triggers a <strong>random transition</strong> from a pool of 12:
+      4 remocn (<code>whipPan</code>, <code>pushThrough</code>, <code>focusPull</code>) +
+      8 custom CSS (<code>fade</code>, <code>slideLeft/Right/Up/Down</code>, <code>zoomIn/Out</code>, <code>irisWipe</code>).
+      Shader-based transitions excluded (crash headless Chrome during batch render).
+      Result: 40 transitions across 2:21 (was 81) — feels paced, not chaotic.
+    </p>
+
+    <div class="video-card">
+      <div class="video-card-header">
+        <div class="video-card-title">DEMI - HomeBody · audio2scene → Remotion v3 (random transitions)</div>
+        <div class="video-card-meta">15s · 640×360 · 1.8 MB · 12 transition types</div>
+      </div>
+      <div class="video-wrap">
+        <video controls preload="metadata" poster="remotion-preview/frame-v3-100.png">
+          <source src="remotion-preview/preview-v3-15s.mp4" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+      </div>
+      <div class="video-footer">
+        <div>
+          <span class="badge" style="background: rgba(74, 222, 128, 0.15); border-color: #4ade80; color: #4ade80;">v3 LATEST</span>
+          <span style="margin-left: 12px;">3s min gap · 12 transition types · 40 transitions total</span>
+        </div>
+        <div>Audio: archive.org · Analysis: audio2scene v0.4.0</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2 class="section-title">v3 Frame Stills</h2>
+    <p class="section-desc">
+      Frames from v3 — each segment slice has its own shader background and kinetic label entrance.
+    </p>
+
+    <div class="frames-grid">
+      <div class="frame-card">
+        <img src="remotion-preview/frame-v3-100.png" alt="v3 Frame 100">
+        <div class="frame-card-body">
+          <div class="frame-card-title">Early Segment</div>
+          <div class="frame-card-meta">frame 100 · 3.3s</div>
+        </div>
+      </div>
+      <div class="frame-card">
+        <img src="remotion-preview/frame-v3-300.png" alt="v3 Frame 300">
+        <div class="frame-card-body">
+          <div class="frame-card-title">Mid Segment</div>
+          <div class="frame-card-meta">frame 300 · 10s</div>
+        </div>
+      </div>
+      <div class="frame-card">
+        <img src="remotion-preview/frame-v3-600.png" alt="v3 Frame 600">
+        <div class="frame-card-body">
+          <div class="frame-card-title">After Transition</div>
+          <div class="frame-card-meta">frame 600 · 20s</div>
+        </div>
+      </div>
+      <div class="frame-card">
+        <img src="remotion-preview/frame-v3-1200.png" alt="v3 Frame 1200">
+        <div class="frame-card-body">
+          <div class="frame-card-title">Late Segment</div>
+          <div class="frame-card-meta">frame 1200 · 40s</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2 class="section-title">v2 Preview — remocn components (1.8s Cut gap)</h2>
+    <p class="section-desc">
+      Previous version with 1.8s Cut gap — too dense, 81 transitions in 2:21 felt chaotic.
+      Kept for comparison.
     </p>
 
     <div class="video-card">
@@ -370,45 +436,6 @@
           <span style="margin-left: 12px;">13 components: shader-mesh-gradient, soft-blur-in, kinetic-center-build, number-wheel, whip-pan, push-through, grain-dissolve, warp-dissolve, staggered-fade-up, typewriter, caret, shader-grain-gradient, shader-warp</span>
         </div>
         <div>Audio: archive.org · Analysis: audio2scene v0.4.0</div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <h2 class="section-title">v2 Frame Stills</h2>
-    <p class="section-desc">
-      Single-frame renders from the v2 composition — shows animated shader backgrounds,
-      kinetic text reveals, and number-wheel stat counters.
-    </p>
-
-    <div class="frames-grid">
-      <div class="frame-card">
-        <img src="remotion-preview/frame-v2-050.png" alt="v2 Frame 50">
-        <div class="frame-card-body">
-          <div class="frame-card-title">Title Scene</div>
-          <div class="frame-card-meta">frame 50 · 1.67s · SoftBlurIn text</div>
-        </div>
-      </div>
-      <div class="frame-card">
-        <img src="remotion-preview/frame-v2-200.png" alt="v2 Frame 200">
-        <div class="frame-card-body">
-          <div class="frame-card-title">First Segment</div>
-          <div class="frame-card-meta">frame 200 · 6.67s · KineticCenterBuild</div>
-        </div>
-      </div>
-      <div class="frame-card">
-        <img src="remotion-preview/frame-v2-600.png" alt="v2 Frame 600">
-        <div class="frame-card-body">
-          <div class="frame-card-title">Mid Song</div>
-          <div class="frame-card-meta">frame 600 · 20s · NumberWheel stats</div>
-        </div>
-      </div>
-      <div class="frame-card">
-        <img src="remotion-preview/frame-v2-2000.png" alt="v2 Frame 2000">
-        <div class="frame-card-body">
-          <div class="frame-card-title">Late Segment</div>
-          <div class="frame-card-meta">frame 2000 · 66.7s · shader shift</div>
-        </div>
       </div>
     </div>
   </section>
