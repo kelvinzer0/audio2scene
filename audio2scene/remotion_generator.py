@@ -474,10 +474,13 @@ PACKAGE_JSON = """{
     "@remotion/google-fonts": "4.0.484",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "remotion": "4.0.484"
+    "remotion": "4.0.484",
+    "clsx": "^2.1.0",
+    "culori": "^4.0.0"
   },
   "devDependencies": {
     "@types/react": "19.2.7",
+    "@types/culori": "^4.0.0",
     "typescript": "5.9.3"
   },
   "scripts": {

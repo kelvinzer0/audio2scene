@@ -199,20 +199,10 @@ const IrisPresentation: React.FC<TransitionPresentationComponentProps<Record<str
   return <AbsoluteFill style={{ clipPath, WebkitClipPath: clipPath }}>{children}</AbsoluteFill>;
 };
 
-const WhipPanPresentation: React.FC<TransitionPresentationComponentProps<{ direction: string }>> = ({
-  children, presentationProgress, presentationDirection, passedProps,
-}) => {
-  const { direction = "left" } = passedProps;
-  const entering = presentationDirection === "entering";
-  const p = presentationProgress;
-  const offset = entering ? (1 - p) * 80 : p * -80;
-  const sign = direction === "left" ? -1 : 1;
-  return (
-    <AbsoluteFill style={{ transform: `translateX(${offset * sign}%)`, filter: `blur(${Math.sin(p * Math.PI) * 8}px)` }}>
-      {children}
-    </AbsoluteFill>
-  );
-};
+// ─── remocn transitions (imported from registry) ────────────────────────────
+import { whipPan } from "./components/remocn/whip-pan";
+import { pushThrough } from "./components/remocn/push-through";
+import { focusPull } from "./components/remocn/focus-pull";
 
 function getTransition(name: string): TransitionPresentation<Record<string, unknown>> {
   switch (name) {
@@ -224,10 +214,11 @@ function getTransition(name: string): TransitionPresentation<Record<string, unkn
     case "zoomIn": return { component: ZoomPresentation as any, props: { mode: "in" } };
     case "zoomOut": return { component: ZoomPresentation as any, props: { mode: "out" } };
     case "irisWipe": return { component: IrisPresentation, props: {} };
-    case "whipPan": return { component: WhipPanPresentation as any, props: { direction: "left" } };
-    case "whipPanRight": return { component: WhipPanPresentation as any, props: { direction: "right" } };
-    case "pushThrough": return { component: ZoomPresentation as any, props: { mode: "in" } };
-    case "focusPull": return { component: FadePresentation, props: {} };
+    // remocn transitions (standard shadcn components)
+    case "whipPan": return whipPan({ direction: "left", blur: 12 }) as any;
+    case "whipPanRight": return whipPan({ direction: "right", blur: 12 }) as any;
+    case "pushThrough": return pushThrough() as any;
+    case "focusPull": return focusPull() as any;
     default: return { component: FadePresentation, props: {} };
   }
 }
