@@ -6,7 +6,7 @@ import type {
   TransitionPresentation,
   TransitionPresentationComponentProps,
 } from "@remotion/transitions";
-import { ShaderWarp } from "@/components/remocn/shader-warp";
+import { ShaderWarp } from "./shader-warp";
 
 const clampOpts = {
   extrapolateLeft: "clamp" as const,

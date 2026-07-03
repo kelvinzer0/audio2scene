@@ -6,10 +6,7 @@ import type {
   TransitionPresentation,
   TransitionPresentationComponentProps,
 } from "@remotion/transitions";
-import {
-  ShaderGrainGradient,
-  type ShaderGrainGradientProps,
-} from "./shader-grain-gradient";
+import { ShaderGrainGradient } from "./shader-grain-gradient";
 
 const clampOpts = {
   extrapolateLeft: "clamp" as const,
@@ -18,17 +15,18 @@ const clampOpts = {
 
 const DEFAULT_COLORS = ["#3a3a52", "#4a4a68", "#8f88ae"];
 
-export type GrainDissolveProps = {
+export type RippleZoomProps = {
   colors?: string[];
   colorBack?: string;
-  shape?: NonNullable<ShaderGrainGradientProps["shape"]>;
+  intensity?: number;
+  softness?: number;
   noise?: number;
   zoom?: number;
   speed?: number;
 };
 
-const GrainDissolvePresentation: React.FC<
-  TransitionPresentationComponentProps<GrainDissolveProps>
+const RippleZoomPresentation: React.FC<
+  TransitionPresentationComponentProps<RippleZoomProps>
 > = ({
   children,
   presentationProgress,
@@ -38,9 +36,10 @@ const GrainDissolvePresentation: React.FC<
   const {
     colors = DEFAULT_COLORS,
     colorBack = "#141318",
-    shape = "blob",
-    noise = 0.3,
-    zoom = 2,
+    intensity = 0.5,
+    softness = 0.5,
+    noise = 0.5,
+    zoom = 4,
     speed = 1,
   } = passedProps;
   const entering = presentationDirection === "entering";
@@ -48,34 +47,34 @@ const GrainDissolvePresentation: React.FC<
 
   if (!entering) {
     const exitStyle: React.CSSProperties = {
-      opacity: interpolate(p, [0.14, 0.34], [1, 0], clampOpts),
-      filter: `blur(${interpolate(p, [0.06, 0.34], [0, 10], clampOpts)}px)`,
+      opacity: interpolate(p, [0.35, 0.55], [1, 0], {
+        ...clampOpts,
+        easing: Easing.bezier(0.42, 0, 0.58, 1),
+      }),
+      transform: `scale(${interpolate(p, [0.3, 0.62], [1, 1.6], {
+        ...clampOpts,
+        easing: Easing.in(Easing.cubic),
+      })})`,
     };
     return <AbsoluteFill style={exitStyle}>{children}</AbsoluteFill>;
   }
 
-  const fieldOpacity = interpolate(p, [0, 0.26], [0, 1], {
+  const fieldOpacity = interpolate(p, [0.08, 0.32], [0, 1], {
     ...clampOpts,
     easing: Easing.bezier(0.42, 0, 0.58, 1),
   });
-  const intensity = interpolate(p, [0.08, 0.92], [0, 1], {
+  const fieldScale = interpolate(p, [0.32, 1], [0.2, zoom], {
     ...clampOpts,
-    easing: Easing.bezier(0.42, 0, 0.58, 1),
+    easing: Easing.bezier(0.7, 0, 0.3, 1),
   });
-  const softness = interpolate(p, [0.08, 0.92], [0, 1], {
-    ...clampOpts,
-    easing: Easing.bezier(0.42, 0, 0.58, 1),
-  });
-  const fieldScale =
-    zoom * interpolate(p, [0, 1], [0.9, 1.15], clampOpts);
 
   const childStyle: React.CSSProperties = {
-    opacity: interpolate(p, [0.7, 0.86], [0, 1], clampOpts),
-    transform: `scale(${interpolate(p, [0.7, 1], [1.05, 1], {
+    opacity: interpolate(p, [0.45, 0.62], [0, 1], clampOpts),
+    transform: `scale(${interpolate(p, [0.42, 0.97], [0.2, 1], {
       ...clampOpts,
-      easing: Easing.out(Easing.cubic),
+      easing: Easing.bezier(0.33, 1, 0.68, 1),
     })})`,
-    filter: `blur(${interpolate(p, [0.7, 0.92], [10, 0], clampOpts)}px)`,
+    filter: `blur(${interpolate(p, [0.42, 0.8], [8, 0], clampOpts)}px)`,
   };
 
   return (
@@ -83,12 +82,12 @@ const GrainDissolvePresentation: React.FC<
       <AbsoluteFill style={{ opacity: fieldOpacity, pointerEvents: "none" }}>
         <ShaderGrainGradient
           speed={speed}
+          shape="ripple"
           colors={colors}
           colorBack={colorBack}
-          shape={shape}
-          noise={noise}
           intensity={intensity}
           softness={softness}
+          noise={noise}
           scale={fieldScale}
         />
       </AbsoluteFill>
@@ -97,11 +96,11 @@ const GrainDissolvePresentation: React.FC<
   );
 };
 
-export function grainDissolve(
-  props: GrainDissolveProps = {},
-): TransitionPresentation<GrainDissolveProps> {
+export function rippleZoom(
+  props: RippleZoomProps = {},
+): TransitionPresentation<RippleZoomProps> {
   return {
-    component: GrainDissolvePresentation,
+    component: RippleZoomPresentation,
     props,
   };
 }
