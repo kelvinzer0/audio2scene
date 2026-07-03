@@ -2,10 +2,17 @@ import React, { useEffect, useState } from "react";
 import {
   AbsoluteFill,
   Audio,
+  interpolate,
   staticFile,
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
+import { TransitionSeries, linearTiming } from "@remotion/transitions";
+import { ShaderMeshGradient } from "./components/remocn/shader-mesh-gradient";
+import { SoftBlurIn } from "./components/remocn/soft-blur-in";
+import { KineticCenterBuild } from "./components/remocn/kinetic-center-build";
+import { NumberWheel } from "./components/remocn/number-wheel";
+import { whipPan } from "./components/remocn/whip-pan";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -45,18 +52,7 @@ interface SongData {
   waveform: number[];
 }
 
-// ─── Effect color palette (match HTML preview) ──────────────────────────────
-
-const EFFECT_COLORS: Record<Effect, string> = {
-  Cut: "#94a3b8",
-  Flash: "#facc15",
-  Zoom: "#22d3ee",
-  Glitch: "#ef4444",
-  Hold: "#3b82f6",
-  "Fade In": "#4ade80",
-  "Fade Out": "#2dd4bf",
-  Title: "#a855f7",
-};
+// ─── Color palette per segment label ────────────────────────────────────────
 
 const LABEL_COLORS: Record<string, string> = {
   Intro: "#60a5fa",
@@ -71,25 +67,510 @@ const LABEL_COLORS: Record<string, string> = {
   "Fade Out": "#2dd4bf",
 };
 
-// ─── Scene background — gradient that changes per segment ───────────────────
+const EFFECT_COLORS: Record<Effect, string> = {
+  Cut: "#94a3b8",
+  Flash: "#facc15",
+  Zoom: "#22d3ee",
+  Glitch: "#ef4444",
+  Hold: "#3b82f6",
+  "Fade In": "#4ade80",
+  "Fade Out": "#2dd4bf",
+  Title: "#a855f7",
+};
 
-const SceneBackground: React.FC<{ segment: Segment | null; intensity: number }> = ({ segment, intensity }) => {
-  const baseColor = segment ? LABEL_COLORS[segment.label] || "#a855f7" : "#1a1a2e";
-  // Brightness scaled by intensity (0.5..1.0)
-  const brightness = 0.4 + intensity * 0.6;
+// Build a 4-color palette for ShaderMeshGradient based on segment label
+function paletteForLabel(label: string): string[] {
+  const base = LABEL_COLORS[label] || "#a855f7";
+  // Build variations: dark, base, base lighten, accent
+  return [
+    "#0a0a14",
+    base + "80",  // 50% opacity
+    base,
+    base + "40",  // 25% opacity
+  ];
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function findSegment(segments: Segment[], t: number): Segment | null {
+  for (const seg of segments) {
+    if (t >= seg.start && t < seg.end) return seg;
+  }
+  return segments.length > 0 ? segments[segments.length - 1] : null;
+}
+
+function findActiveEffect(events: VideoEvent[], t: number, windowSec = 0.15): { effect: Effect | null; intensity: number } {
+  let best: VideoEvent | null = null;
+  for (const ev of events) {
+    if (ev.time <= t && ev.time > t - windowSec) {
+      if (!best || ev.intensity > best.intensity) best = ev;
+    }
+  }
+  if (best) return { effect: best.effect, intensity: best.intensity };
+  return { effect: null, intensity: 0 };
+}
+
+function fmtTime(t: number): string {
+  const m = Math.floor(t / 60);
+  const s = Math.floor(t % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+// ─── Scene: one per segment, with whip-pan transitions between ──────────────
+
+interface SceneProps {
+  segment: Segment;
+  song: SongData;
+  segmentIndex: number;
+  isLast: boolean;
+}
+
+const Scene: React.FC<SceneProps> = ({ segment, song, segmentIndex }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  // Local frame: 0 at segment start
+  const localFrame = frame;
+  const localTime = localFrame / fps;
+
+  // Filter events that belong to this segment
+  const segmentEvents = song.events.filter(
+    (e) => e.time >= segment.start && e.time < segment.end
+  );
+
+  // Find current active effect within this scene
+  const { effect: activeEffect, intensity: effectIntensity } = findActiveEffect(
+    segmentEvents,
+    segment.start + localTime
+  );
+
+  // Flash state (100ms window)
+  const flashEvent = segmentEvents.find(
+    (e) => e.effect === "Flash" && localTime >= e.time - segment.start && localTime < e.time - segment.start + 0.1
+  );
+
+  // Zoom event (build-up)
+  const zoomEvent = segmentEvents.find(
+    (e) => e.effect === "Zoom" && localTime >= e.time - segment.start && localTime < e.time - segment.start + e.duration
+  );
+  const zoomProgress = zoomEvent
+    ? (localTime - (zoomEvent.time - segment.start)) / zoomEvent.duration
+    : 0;
+
+  // Glitch event (1s)
+  const glitchEvent = segmentEvents.find(
+    (e) => e.effect === "Glitch" && localTime >= e.time - segment.start && localTime < e.time - segment.start + 1.0
+  );
+
+  const colors = paletteForLabel(segment.label);
+
+  // Zoom scale
+  const zoomScale = zoomEvent ? 1 + zoomEvent.intensity * 0.3 * zoomProgress : 1;
 
   return (
-    <AbsoluteFill
-      style={{
-        background: `radial-gradient(circle at 50% 50%, ${baseColor}40 0%, #0a0a0f 70%)`,
-        filter: `brightness(${brightness})`,
-        transition: "background 0.2s ease-out",
-      }}
-    />
+    <AbsoluteFill>
+      {/* Animated shader background — colors change per segment */}
+      <AbsoluteFill style={{ scale: `${zoomScale}` }}>
+        <ShaderMeshGradient
+          speed={0.3 + segment.intensity * 0.5}
+          colors={colors}
+          distortion={0.5 + segment.intensity * 0.4}
+          swirl={0.1 + segment.intensity * 0.2}
+        />
+      </AbsoluteFill>
+
+      {/* Vignette */}
+      <AbsoluteFill
+        style={{
+          background:
+            "radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.6) 100%)",
+          pointerEvents: "none",
+        }}
+      />
+
+      {/* Glitch effect (chromatic aberration + slice) */}
+      {glitchEvent && (
+        <AbsoluteFill
+          style={{
+            boxShadow: `inset ${Math.sin(localFrame * 3) * 15 * glitchEvent.intensity}px 0 0 #ef444488, inset ${-Math.sin(localFrame * 3) * 15 * glitchEvent.intensity}px 0 0 #22d3ee88`,
+            pointerEvents: "none",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: "30%",
+              left: 0,
+              right: 0,
+              height: 6,
+              backgroundColor: "#ef4444",
+              opacity: 0.7 * glitchEvent.intensity,
+              transform: `translateX(${Math.sin(localFrame * 4) * 30}px)`,
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              top: "60%",
+              left: 0,
+              right: 0,
+              height: 8,
+              backgroundColor: "#22d3ee",
+              opacity: 0.5 * glitchEvent.intensity,
+              transform: `translateX(${-Math.sin(localFrame * 4) * 30}px)`,
+            }}
+          />
+        </AbsoluteFill>
+      )}
+
+      {/* Flash overlay (white flash) */}
+      {flashEvent && (
+        <AbsoluteFill
+          style={{
+            backgroundColor: "white",
+            opacity: flashEvent.intensity * 0.85,
+            pointerEvents: "none",
+          }}
+        />
+      )}
+
+      {/* Segment label — kinetic center build (entrance only, first 60 frames) */}
+      {localFrame < 60 && (
+        <AbsoluteFill
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            pointerEvents: "none",
+          }}
+        >
+          <KineticCenterBuild
+            text={segment.label}
+            fontSize={88}
+            color="white"
+            fontWeight={800}
+            speed={1}
+          />
+        </AbsoluteFill>
+      )}
+
+      {/* Persistent UI overlays — fade in after kinetic build completes */}
+      {localFrame >= 60 && (
+        <AbsoluteFill style={{ opacity: interpolate(localFrame, [60, 80], [0, 1], { extrapolateRight: "clamp" }) }}>
+          {/* Top-left: segment label + intensity */}
+          <div
+            style={{
+              position: "absolute",
+              top: 40,
+              left: 60,
+              fontFamily: "Inter, system-ui, sans-serif",
+            }}
+          >
+            <div
+              style={{
+                color: LABEL_COLORS[segment.label] || "#a855f7",
+                fontSize: 12,
+                fontWeight: 700,
+                letterSpacing: 3,
+                textTransform: "uppercase",
+                marginBottom: 6,
+              }}
+            >
+              Scene {segmentIndex + 1}
+            </div>
+            <div
+              style={{
+                color: "white",
+                fontSize: 36,
+                fontWeight: 800,
+                textShadow: "0 2px 12px rgba(0,0,0,0.6)",
+              }}
+            >
+              {segment.label}
+            </div>
+            <div style={{ marginTop: 10, display: "flex", gap: 12, alignItems: "center" }}>
+              <div
+                style={{
+                  padding: "5px 12px",
+                  backgroundColor: `${LABEL_COLORS[segment.label] || "#a855f7"}30`,
+                  border: `1px solid ${LABEL_COLORS[segment.label] || "#a855f7"}`,
+                  borderRadius: 6,
+                  color: LABEL_COLORS[segment.label] || "#a855f7",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  letterSpacing: 1,
+                  textTransform: "uppercase",
+                }}
+              >
+                {segment.intensity_label}
+              </div>
+              <div
+                style={{
+                  color: "#94a3b8",
+                  fontSize: 13,
+                  fontFamily: "monospace",
+                }}
+              >
+                intensity {(segment.intensity * 100).toFixed(0)}%
+              </div>
+            </div>
+          </div>
+
+          {/* Top-right: time + tempo */}
+          <div
+            style={{
+              position: "absolute",
+              top: 40,
+              right: 60,
+              textAlign: "right",
+              fontFamily: "Inter, system-ui, sans-serif",
+            }}
+          >
+            <div
+              style={{
+                color: "white",
+                fontSize: 32,
+                fontWeight: 800,
+                fontFamily: "monospace",
+                textShadow: "0 2px 12px rgba(0,0,0,0.6)",
+              }}
+            >
+              {fmtTime(segment.start + localTime)}{" "}
+              <span style={{ color: "#475569", fontSize: 20 }}>
+                / {fmtTime(song.duration)}
+              </span>
+            </div>
+            <div
+              style={{
+                color: "#22d3ee",
+                fontSize: 14,
+                fontWeight: 700,
+                marginTop: 4,
+              }}
+            >
+              {song.tempo} BPM
+            </div>
+          </div>
+
+          {/* Center: stats grid with number-wheels */}
+          <div
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              display: "flex",
+              gap: 80,
+              opacity: 0.85,
+            }}
+          >
+            <div style={{ textAlign: "center" }}>
+              <NumberWheel
+                from={0}
+                to={Math.floor(segment.intensity * 100)}
+                fontSize={56}
+                color="white"
+                speed={1}
+              />
+              <div
+                style={{
+                  color: "#94a3b8",
+                  fontSize: 11,
+                  letterSpacing: 2,
+                  textTransform: "uppercase",
+                  marginTop: 8,
+                  fontFamily: "Inter, system-ui, sans-serif",
+                }}
+              >
+                Intensity %
+              </div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <NumberWheel
+                from={0}
+                to={segmentEvents.filter((e) => e.effect === "Cut").length}
+                fontSize={56}
+                color="#94a3b8"
+                speed={1}
+              />
+              <div
+                style={{
+                  color: "#94a3b8",
+                  fontSize: 11,
+                  letterSpacing: 2,
+                  textTransform: "uppercase",
+                  marginTop: 8,
+                  fontFamily: "Inter, system-ui, sans-serif",
+                }}
+              >
+                Cut Events
+              </div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <NumberWheel
+                from={0}
+                to={segmentEvents.filter((e) => e.effect === "Flash").length}
+                fontSize={56}
+                color="#facc15"
+                speed={1}
+              />
+              <div
+                style={{
+                  color: "#94a3b8",
+                  fontSize: 11,
+                  letterSpacing: 2,
+                  textTransform: "uppercase",
+                  marginTop: 8,
+                  fontFamily: "Inter, system-ui, sans-serif",
+                }}
+              >
+                Flash Events
+              </div>
+            </div>
+          </div>
+
+          {/* Active effect indicator */}
+          {activeEffect && (
+            <div
+              style={{
+                position: "absolute",
+                bottom: 180,
+                left: "50%",
+                transform: "translateX(-50%)",
+                padding: "10px 28px",
+                backgroundColor: `${EFFECT_COLORS[activeEffect]}30`,
+                border: `2px solid ${EFFECT_COLORS[activeEffect]}`,
+                borderRadius: 8,
+                color: "white",
+                fontFamily: "Inter, system-ui, sans-serif",
+                fontSize: 16,
+                fontWeight: 700,
+                letterSpacing: 4,
+                textTransform: "uppercase",
+                boxShadow: `0 0 24px ${EFFECT_COLORS[activeEffect]}80`,
+              }}
+            >
+              {activeEffect}
+              <span style={{ marginLeft: 14, color: EFFECT_COLORS[activeEffect], fontSize: 13 }}>
+                {(effectIntensity * 100).toFixed(0)}%
+              </span>
+            </div>
+          )}
+
+          {/* Bottom: waveform */}
+          <WaveformViz
+            waveform={song.waveform}
+            currentTime={segment.start + localTime}
+            duration={song.duration}
+          />
+        </AbsoluteFill>
+      )}
+    </AbsoluteFill>
   );
 };
 
-// ─── Waveform bar visualization (uses pre-computed peaks) ────────────────────
+// ─── Title scene (first 3 seconds) ──────────────────────────────────────────
+
+const TitleScene: React.FC<{ song: SongData }> = ({ song }) => {
+  const frame = useCurrentFrame();
+
+  // Fade out at end (last 30 frames of title duration = 90 frames total)
+  const fadeOut = interpolate(frame, [60, 90], [1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+  return (
+    <AbsoluteFill style={{ opacity: fadeOut }}>
+      <ShaderMeshGradient
+        speed={0.4}
+        colors={["#0a0a14", "#a855f780", "#22d3ee", "#a855f740"]}
+        distortion={0.7}
+        swirl={0.2}
+      />
+      <AbsoluteFill
+        style={{
+          background:
+            "radial-gradient(circle at center, transparent 20%, rgba(0,0,0,0.7) 100%)",
+        }}
+      />
+      <AbsoluteFill
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 24,
+        }}
+      >
+        {/* "NOW PLAYING" eyebrow */}
+        <div
+          style={{
+            color: "#a855f7",
+            fontSize: 16,
+            fontWeight: 600,
+            letterSpacing: 6,
+            textTransform: "uppercase",
+            opacity: interpolate(frame, [0, 15], [0, 1], { extrapolateRight: "clamp" }),
+          }}
+        >
+          ◆ Audio2Scene Preview
+        </div>
+
+        {/* Song title with soft blur in */}
+        <SoftBlurIn
+          text={song.title}
+          fontSize={72}
+          color="white"
+          fontWeight={800}
+          blur={20}
+          speed={1}
+        />
+
+        {/* Subtitle: stats line */}
+        <div
+          style={{
+            marginTop: 32,
+            display: "flex",
+            gap: 32,
+            color: "#94a3b8",
+            fontSize: 18,
+            fontFamily: "monospace",
+            opacity: interpolate(frame, [30, 60], [0, 1], { extrapolateRight: "clamp" }),
+          }}
+        >
+          <span style={{ color: "#22d3ee" }}>{song.tempo} BPM</span>
+          <span>·</span>
+          <span>{fmtTime(song.duration)}</span>
+          <span>·</span>
+          <span>{song.n_events} events</span>
+          <span>·</span>
+          <span>{song.n_segments} segments</span>
+        </div>
+
+        {/* Brand chip */}
+        <div
+          style={{
+            marginTop: 24,
+            padding: "10px 28px",
+            border: "2px solid #22d3ee",
+            color: "#22d3ee",
+            fontFamily: "Inter, system-ui, sans-serif",
+            fontSize: 14,
+            fontWeight: 700,
+            letterSpacing: 3,
+            textTransform: "uppercase",
+            opacity: interpolate(frame, [45, 75], [0, 1], { extrapolateRight: "clamp" }),
+          }}
+        >
+          v0.4.0 · Beat + Onset + Intensity → Effect Mapping
+        </div>
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+};
+
+// ─── Waveform visualization (bottom strip) ──────────────────────────────────
 
 const WaveformViz: React.FC<{ waveform: number[]; currentTime: number; duration: number }> = ({
   waveform,
@@ -103,27 +584,30 @@ const WaveformViz: React.FC<{ waveform: number[]; currentTime: number; duration:
     <div
       style={{
         position: "absolute",
-        bottom: 100,
+        bottom: 80,
         left: 60,
         right: 60,
-        height: 80,
+        height: 60,
         display: "flex",
-        alignItems: "flex-end",
+        alignItems: "center",
         gap: 2,
-        opacity: 0.7,
+        opacity: 0.8,
       }}
     >
       {waveform.map((v, i) => {
         const isPast = i / N < progress;
+        const distFromPlayhead = Math.abs(i / N - progress);
+        const isNear = distFromPlayhead < 0.02;
         return (
           <div
             key={i}
             style={{
               flex: 1,
               height: `${v * 100}%`,
-              backgroundColor: isPast ? "#22d3ee" : "#475569",
+              backgroundColor: isNear ? "white" : isPast ? "#22d3ee" : "#475569",
               borderRadius: 1,
               minHeight: 2,
+              transform: isNear ? "scaleY(1.2)" : "scaleY(1)",
             }}
           />
         );
@@ -132,16 +616,15 @@ const WaveformViz: React.FC<{ waveform: number[]; currentTime: number; duration:
   );
 };
 
-// ─── Timeline progress bar with event ticks ─────────────────────────────────
+// ─── Timeline progress bar ──────────────────────────────────────────────────
 
-const Timeline: React.FC<{ events: VideoEvent[]; currentTime: number; duration: number; segments: Segment[] }> = ({
-  events,
+const Timeline: React.FC<{ segments: Segment[]; currentTime: number; duration: number }> = ({
+  segments,
   currentTime,
   duration,
-  segments,
 }) => {
   const progress = currentTime / duration;
-  const width = 1160; // 1280 - 60*2
+  const width = 1160;
 
   return (
     <div
@@ -150,14 +633,13 @@ const Timeline: React.FC<{ events: VideoEvent[]; currentTime: number; duration: 
         bottom: 30,
         left: 60,
         width,
-        height: 50,
+        height: 30,
       }}
     >
-      {/* Track */}
       <div
         style={{
           position: "absolute",
-          top: 24,
+          top: 12,
           left: 0,
           right: 0,
           height: 4,
@@ -165,418 +647,50 @@ const Timeline: React.FC<{ events: VideoEvent[]; currentTime: number; duration: 
           borderRadius: 2,
         }}
       />
-      {/* Filled progress */}
       <div
         style={{
           position: "absolute",
-          top: 24,
+          top: 12,
           left: 0,
           width: `${progress * 100}%`,
           height: 4,
           backgroundColor: "#22d3ee",
           borderRadius: 2,
+          boxShadow: "0 0 8px #22d3ee",
         }}
       />
-      {/* Segment markers as colored bars */}
       {segments.map((seg, i) => {
         const left = (seg.start / duration) * width;
         const segWidth = ((seg.end - seg.start) / duration) * width;
         return (
           <div
-            key={`seg-${i}`}
+            key={`tl-${i}`}
             style={{
               position: "absolute",
-              top: 18,
+              top: 6,
               left,
               width: segWidth,
               height: 4,
               backgroundColor: LABEL_COLORS[seg.label] || "#a855f7",
-              opacity: 0.6,
+              opacity: 0.5,
             }}
           />
         );
       })}
-      {/* Event ticks */}
-      {events.map((ev, i) => {
-        const x = (ev.time / duration) * width;
-        const color = EFFECT_COLORS[ev.effect];
-        const isStrong = ev.effect === "Flash" || ev.effect === "Glitch" || ev.effect === "Title";
-        return (
-          <div
-            key={`ev-${i}`}
-            style={{
-              position: "absolute",
-              top: isStrong ? 8 : 14,
-              left: x,
-              width: isStrong ? 3 : 1,
-              height: isStrong ? 24 : 16,
-              backgroundColor: color,
-              opacity: isStrong ? 1 : 0.5,
-            }}
-          />
-        );
-      })}
-      {/* Playhead */}
       <div
         style={{
           position: "absolute",
           top: 0,
           left: progress * width,
           width: 2,
-          height: 50,
-          backgroundColor: "#ffffff",
-          boxShadow: "0 0 8px #22d3ee",
+          height: 30,
+          backgroundColor: "white",
+          boxShadow: "0 0 8px white",
         }}
       />
     </div>
   );
 };
-
-// ─── Effect overlays ────────────────────────────────────────────────────────
-
-const FlashOverlay: React.FC<{ active: boolean; intensity: number }> = ({ active, intensity }) => {
-  if (!active) return null;
-  return (
-    <AbsoluteFill
-      style={{
-        backgroundColor: "white",
-        opacity: intensity * 0.9,
-        pointerEvents: "none",
-      }}
-    />
-  );
-};
-
-const ZoomEffect: React.FC<{ active: boolean; progress: number; intensity: number }> = ({
-  active,
-  progress,
-  intensity,
-}) => {
-  if (!active) return null;
-  const scale = 1 + intensity * 0.3 * progress;
-  return (
-    <AbsoluteFill
-      style={{
-        scale: `${scale}`,
-        transformOrigin: "center",
-        pointerEvents: "none",
-      }}
-    />
-  );
-};
-void ZoomEffect; // exported for future use; currently inlined in main composition
-
-const GlitchEffect: React.FC<{ active: boolean; intensity: number }> = ({ active, intensity }) => {
-  const frame = useCurrentFrame();
-  if (!active) return null;
-  // Chromatic aberration + horizontal slice
-  const offset = Math.sin(frame * 2) * 10 * intensity;
-  return (
-    <AbsoluteFill
-      style={{
-        backgroundColor: "transparent",
-        boxShadow: `inset ${offset}px 0 0 #ef444488, inset ${-offset}px 0 0 #22d3ee88`,
-        pointerEvents: "none",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          top: "30%",
-          left: 0,
-          right: 0,
-          height: 4,
-          backgroundColor: "#ef4444",
-          opacity: 0.6 * intensity,
-          transform: `translateX(${offset * 2}px)`,
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          top: "60%",
-          left: 0,
-          right: 0,
-          height: 6,
-          backgroundColor: "#22d3ee",
-          opacity: 0.5 * intensity,
-          transform: `translateX(${-offset * 2}px)`,
-        }}
-      />
-    </AbsoluteFill>
-  );
-};
-
-const FadeOverlay: React.FC<{ type: "in" | "out"; active: boolean; progress: number }> = ({
-  type,
-  active,
-  progress,
-}) => {
-  if (!active) return null;
-  // progress 0..1 over fade duration
-  const opacity = type === "in" ? 1 - progress : progress;
-  return (
-    <AbsoluteFill
-      style={{
-        backgroundColor: "black",
-        opacity,
-        pointerEvents: "none",
-      }}
-    />
-  );
-};
-
-const TitleCard: React.FC<{ active: boolean; progress: number; songTitle: string }> = ({
-  active,
-  progress,
-  songTitle,
-}) => {
-  if (!active) return null;
-  // Fade in/out: 0..0.3 fade in, 0.7..1 fade out
-  let opacity = 1;
-  if (progress < 0.3) opacity = progress / 0.3;
-  else if (progress > 0.7) opacity = (1 - progress) / 0.3;
-
-  return (
-    <AbsoluteFill
-      style={{
-        backgroundColor: "rgba(0,0,0,0.85)",
-        opacity,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexDirection: "column",
-        pointerEvents: "none",
-      }}
-    >
-      <div
-        style={{
-          color: "#a855f7",
-          fontSize: 24,
-          fontFamily: "Inter, system-ui, sans-serif",
-          fontWeight: 300,
-          letterSpacing: 4,
-          marginBottom: 16,
-        }}
-      >
-        NOW PLAYING
-      </div>
-      <div
-        style={{
-          color: "white",
-          fontSize: 56,
-          fontFamily: "Inter, system-ui, sans-serif",
-          fontWeight: 700,
-          textAlign: "center",
-          maxWidth: 800,
-        }}
-      >
-        {songTitle}
-      </div>
-      <div
-        style={{
-          marginTop: 24,
-          padding: "8px 24px",
-          border: "2px solid #22d3ee",
-          color: "#22d3ee",
-          fontFamily: "Inter, system-ui, sans-serif",
-          fontSize: 16,
-          fontWeight: 600,
-          letterSpacing: 2,
-        }}
-      >
-        AUDIO2SCENE
-      </div>
-    </AbsoluteFill>
-  );
-};
-
-// ─── Current segment label (top-left) ───────────────────────────────────────
-
-const SegmentLabel: React.FC<{ segment: Segment | null; intensity: number }> = ({ segment, intensity }) => {
-  if (!segment) return null;
-  const color = LABEL_COLORS[segment.label] || "#a855f7";
-
-  return (
-    <div
-      style={{
-        position: "absolute",
-        top: 30,
-        left: 60,
-        fontFamily: "Inter, system-ui, sans-serif",
-      }}
-    >
-      <div
-        style={{
-          color: color,
-          fontSize: 14,
-          fontWeight: 600,
-          letterSpacing: 2,
-          marginBottom: 4,
-          textTransform: "uppercase",
-        }}
-      >
-        Segment
-      </div>
-      <div
-        style={{
-          color: "white",
-          fontSize: 32,
-          fontWeight: 700,
-        }}
-      >
-        {segment.label}
-      </div>
-      <div
-        style={{
-          marginTop: 8,
-          display: "flex",
-          gap: 12,
-          alignItems: "center",
-        }}
-      >
-        <div
-          style={{
-            padding: "4px 10px",
-            backgroundColor: `${color}30`,
-            border: `1px solid ${color}`,
-            borderRadius: 4,
-            color: color,
-            fontSize: 12,
-            fontWeight: 600,
-            letterSpacing: 1,
-            textTransform: "uppercase",
-          }}
-        >
-          {segment.intensity_label}
-        </div>
-        <div
-          style={{
-            color: "#94a3b8",
-            fontSize: 12,
-            fontFamily: "monospace",
-          }}
-        >
-          intensity {(intensity * 100).toFixed(0)}%
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ─── Top-right stats ────────────────────────────────────────────────────────
-
-const StatsPanel: React.FC<{ song: SongData; currentTime: number }> = ({ song, currentTime }) => {
-  const mins = Math.floor(currentTime / 60);
-  const secs = Math.floor(currentTime % 60);
-  const totalMins = Math.floor(song.duration / 60);
-  const totalSecs = Math.floor(song.duration % 60);
-
-  return (
-    <div
-      style={{
-        position: "absolute",
-        top: 30,
-        right: 60,
-        textAlign: "right",
-        fontFamily: "Inter, system-ui, sans-serif",
-      }}
-    >
-      <div
-        style={{
-          color: "white",
-          fontSize: 28,
-          fontWeight: 700,
-          fontFamily: "monospace",
-        }}
-      >
-        {mins}:{secs.toString().padStart(2, "0")}{" "}
-        <span style={{ color: "#475569", fontSize: 18 }}>
-          / {totalMins}:{totalSecs.toString().padStart(2, "0")}
-        </span>
-      </div>
-      <div
-        style={{
-          color: "#22d3ee",
-          fontSize: 14,
-          fontWeight: 600,
-          marginTop: 4,
-        }}
-      >
-        {song.tempo} BPM
-      </div>
-      <div
-        style={{
-          marginTop: 8,
-          color: "#94a3b8",
-          fontSize: 12,
-        }}
-      >
-        {song.n_beats} beats · {song.n_onsets} onsets · {song.n_events} events
-      </div>
-    </div>
-  );
-};
-
-// ─── Active effect indicator (center-bottom) ────────────────────────────────
-
-const ActiveEffectIndicator: React.FC<{ effect: Effect | null; intensity: number }> = ({
-  effect,
-  intensity,
-}) => {
-  if (!effect) return null;
-  const color = EFFECT_COLORS[effect];
-
-  return (
-    <div
-      style={{
-        position: "absolute",
-        bottom: 200,
-        left: "50%",
-        transform: "translateX(-50%)",
-        padding: "12px 32px",
-        backgroundColor: `${color}30`,
-        border: `2px solid ${color}`,
-        borderRadius: 8,
-        color: "white",
-        fontFamily: "Inter, system-ui, sans-serif",
-        fontSize: 20,
-        fontWeight: 700,
-        letterSpacing: 4,
-        textTransform: "uppercase",
-        boxShadow: `0 0 20px ${color}80`,
-      }}
-    >
-      {effect}
-      <span style={{ marginLeft: 16, color, fontSize: 14 }}>
-        {(intensity * 100).toFixed(0)}%
-      </span>
-    </div>
-  );
-};
-
-// ─── Helper: find active segment at time t ──────────────────────────────────
-
-function findSegment(segments: Segment[], t: number): Segment | null {
-  for (const seg of segments) {
-    if (t >= seg.start && t < seg.end) return seg;
-  }
-  return segments.length > 0 ? segments[segments.length - 1] : null;
-}
-
-// ─── Helper: find active effect at time t (within 100ms window) ─────────────
-
-function findActiveEffect(events: VideoEvent[], t: number, windowSec = 0.15): { effect: Effect | null; intensity: number } {
-  // Look for the most recent event within the window
-  let best: VideoEvent | null = null;
-  for (const ev of events) {
-    if (ev.time <= t && ev.time > t - windowSec) {
-      if (!best || ev.intensity > best.intensity) best = ev;
-    }
-  }
-  if (best) return { effect: best.effect, intensity: best.intensity };
-  return { effect: null, intensity: 0 };
-}
 
 // ─── Main composition ───────────────────────────────────────────────────────
 
@@ -585,7 +699,6 @@ export const MyComposition: React.FC = () => {
   const { fps } = useVideoConfig();
   const [song, setSong] = useState<SongData | null>(null);
 
-  // Load song data
   useEffect(() => {
     fetch(staticFile("song.json"))
       .then((r) => r.json())
@@ -611,16 +724,14 @@ export const MyComposition: React.FC = () => {
   }
 
   const currentTime = frame / fps;
-  const segment = findSegment(song.segments, currentTime);
-  const { effect: activeEffect, intensity: effectIntensity } = findActiveEffect(song.events, currentTime);
 
-  // Find active fade/title events
+  // Find fade in/out events
   const fadeInEvent = song.events.find((e) => e.effect === "Fade In");
   const fadeOutEvent = song.events.find((e) => e.effect === "Fade Out");
   const titleEvent = song.events.find((e) => e.effect === "Title");
 
-  // Fade state
-  let fadeInProgress = 1; // 1 = no fade visible (fully transparent overlay)
+  // Fade overlay state
+  let fadeInProgress = 1;
   if (fadeInEvent) {
     const fadeEnd = fadeInEvent.time + fadeInEvent.duration;
     if (currentTime >= fadeInEvent.time && currentTime < fadeEnd) {
@@ -638,142 +749,106 @@ export const MyComposition: React.FC = () => {
     }
   }
 
-  // Title state
-  let titleProgress = 0;
-  let titleActive = false;
-  if (titleEvent) {
-    const titleEnd = titleEvent.time + titleEvent.duration;
-    if (currentTime >= titleEvent.time && currentTime < titleEnd) {
-      titleActive = true;
-      titleProgress = (currentTime - titleEvent.time) / titleEvent.duration;
+  // Build scene list with transitions for TransitionSeries
+  // First scene = title (3s = 90 frames), then each segment as a scene
+  // NOTE: compute synchronously (no useMemo) because hooks can't be after early return
+  const titleEventForScenes = song?.events.find((e) => e.effect === "Title");
+  const scenes: Array<{ type: "title" | "scene"; durationInFrames: number; segment?: Segment }> = [];
+  if (song) {
+    const titleFrames = titleEventForScenes ? Math.round(titleEventForScenes.duration * fps) : 90;
+    scenes.push({ type: "title", durationInFrames: titleFrames });
+    for (const seg of song.segments) {
+      scenes.push({
+        type: "scene",
+        durationInFrames: Math.max(1, Math.round((seg.end - seg.start) * fps)),
+        segment: seg,
+      });
     }
   }
 
-  // Zoom effect (find current Zoom event if any)
-  const zoomEvent = song.events.find(
-    (e) => e.effect === "Zoom" && currentTime >= e.time && currentTime < e.time + e.duration
-  );
-  const zoomProgress = zoomEvent
-    ? (currentTime - zoomEvent.time) / zoomEvent.duration
-    : 0;
-
-  // Glitch event (active for 1s)
-  const glitchEvent = song.events.find(
-    (e) => e.effect === "Glitch" && currentTime >= e.time && currentTime < e.time + 1.0
-  );
-
-  // Hold event (active for duration)
-  const holdEvent = song.events.find(
-    (e) => e.effect === "Hold" && currentTime >= e.time && currentTime < e.time + e.duration
-  );
-
-  // Active flash (within 100ms of a Flash event)
-  const flashEvent = song.events.find(
-    (e) => e.effect === "Flash" && currentTime >= e.time && currentTime < e.time + 0.1
-  );
-
   return (
     <AbsoluteFill style={{ backgroundColor: "#0a0a0f", fontFamily: "Inter, system-ui, sans-serif" }}>
-      {/* Audio track */}
       <Audio src={staticFile("audio.mp3")} />
 
-      {/* Scene background (changes per segment) */}
-      <SceneBackground segment={segment} intensity={segment?.intensity || 0.5} />
+      {/* TransitionSeries drives scene transitions with whip-pan between segments */}
+      <TransitionSeries>
+        {scenes.map((scene, i) => (
+          <React.Fragment key={i}>
+            <TransitionSeries.Sequence durationInFrames={scene.durationInFrames}>
+              {scene.type === "title" ? (
+                <TitleSceneWrapper song={song} startFrame={0} />
+              ) : scene.segment ? (
+                <SceneWrapper song={song} segment={scene.segment} segmentIndex={i - 1} />
+              ) : null}
+            </TransitionSeries.Sequence>
+            {/* Whip-pan transition between scenes (except after last) */}
+            {i < scenes.length - 1 && (
+              <TransitionSeries.Transition
+                presentation={whipPan({ direction: i % 2 === 0 ? "left" : "right", blur: 18 })}
+                timing={linearTiming({ durationInFrames: 12 })}
+              />
+            )}
+          </React.Fragment>
+        ))}
+      </TransitionSeries>
 
-      {/* Hold overlay — darkens slightly during Break */}
-      {holdEvent && (
-        <AbsoluteFill
-          style={{
-            backgroundColor: "black",
-            opacity: 0.3,
-            pointerEvents: "none",
-          }}
-        />
-      )}
-
-      {/* Zoom effect (applied to inner content) */}
+      {/* Fade in/out overlays — always on top */}
       <AbsoluteFill
         style={{
-          scale: zoomEvent
-            ? `${1 + (zoomEvent.intensity * 0.3 * zoomProgress)}`
-            : "1",
-          transformOrigin: "center",
+          backgroundColor: "black",
+          opacity: fadeInProgress < 1 ? 1 - fadeInProgress : 0,
+          pointerEvents: "none",
         }}
-      >
-        {/* Center "scene" — large visual that reacts to events */}
-        <AbsoluteFill
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            pointerEvents: "none",
-          }}
-        >
-          <div
-            style={{
-              width: 400,
-              height: 400,
-              borderRadius: 200,
-              background: segment
-                ? `radial-gradient(circle, ${LABEL_COLORS[segment.label]}80 0%, transparent 70%)`
-                : "radial-gradient(circle, #a855f780 0%, transparent 70%)",
-              filter: `blur(${flashEvent ? "20px" : "0px"})`,
-              opacity: 0.8,
-              scale: `${1 + (flashEvent ? 0.2 : 0) + (segment?.intensity ?? 0.5) * 0.3}`,
-              transition: "all 0.1s ease-out",
-            }}
-          />
-        </AbsoluteFill>
-      </AbsoluteFill>
-
-      {/* Glitch effect overlay */}
-      <GlitchEffect active={!!glitchEvent} intensity={glitchEvent?.intensity || 0} />
-
-      {/* Flash overlay (white flash on strong beats/onsets) */}
-      <FlashOverlay active={!!flashEvent} intensity={flashEvent?.intensity || 0} />
-
-      {/* Title card overlay */}
-      <TitleCard
-        active={titleActive}
-        progress={titleProgress}
-        songTitle={song.title}
+      />
+      <AbsoluteFill
+        style={{
+          backgroundColor: "black",
+          opacity: fadeOutProgress,
+          pointerEvents: "none",
+        }}
       />
 
-      {/* Fade in/out overlays */}
-      <FadeOverlay type="in" active={fadeInProgress < 1} progress={fadeInProgress} />
-      <FadeOverlay type="out" active={fadeOutProgress > 0} progress={fadeOutProgress} />
-
-      {/* UI overlays */}
-      <SegmentLabel segment={segment} intensity={segment?.intensity || 0} />
-      <StatsPanel song={song} currentTime={currentTime} />
-      <ActiveEffectIndicator effect={activeEffect} intensity={effectIntensity} />
-
-      {/* Bottom: waveform + timeline */}
-      <WaveformViz waveform={song.waveform} currentTime={currentTime} duration={song.duration} />
+      {/* Persistent timeline at bottom (always visible) */}
       <Timeline
-        events={song.events}
+        segments={song.segments}
         currentTime={currentTime}
         duration={song.duration}
-        segments={song.segments}
       />
 
-      {/* Top-center: project title */}
+      {/* Top-center: brand mark */}
       <div
         style={{
           position: "absolute",
-          top: 30,
+          top: 16,
           left: "50%",
           transform: "translateX(-50%)",
           color: "#94a3b8",
           fontFamily: "Inter, system-ui, sans-serif",
-          fontSize: 14,
-          fontWeight: 600,
+          fontSize: 11,
+          fontWeight: 700,
           letterSpacing: 4,
           textTransform: "uppercase",
+          opacity: 0.7,
         }}
       >
-        audio2scene → Remotion Preview
+        audio2scene × remocn · Remotion Preview
       </div>
     </AbsoluteFill>
   );
+};
+
+// ─── Wrappers (need to track local frame within Sequence) ───────────────────
+
+const TitleSceneWrapper: React.FC<{ song: SongData; startFrame: number }> = ({ song }) => {
+  // Inside TransitionSeries.Sequence, useCurrentFrame() returns local frame (0 at sequence start)
+  return <TitleScene song={song} />;
+};
+
+const SceneWrapper: React.FC<{ song: SongData; segment: Segment; segmentIndex: number }> = ({
+  song,
+  segment,
+  segmentIndex,
+}) => {
+  // Inside TransitionSeries.Sequence, useCurrentFrame() returns local frame
+  return <Scene segment={segment} song={song} segmentIndex={segmentIndex} isLast={segmentIndex === song.segments.length - 1} />;
 };

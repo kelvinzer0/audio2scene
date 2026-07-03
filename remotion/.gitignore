@@ -3,3 +3,5 @@ public/audio.mp3
 public/song.json
 out/
 .remotion/
+build/
+src/types/
