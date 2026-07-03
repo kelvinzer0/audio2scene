@@ -142,7 +142,8 @@ function renderTypography(effect: string, text: string, fontFamily: string) {
       if (parts.length >= 2) {
         const highlight = parts[0];
         const after = parts.slice(1).join(" ");
-        return <MarkerHighlight {...baseProps} highlight={highlight} after={after} />;
+        // Add leading space to "after" so there's a gap between highlight and after text
+        return <MarkerHighlight {...baseProps} highlight={highlight} after={` ${after}`} />;
       }
       return <SoftBlurIn {...baseProps} text={text} />;
     }
