@@ -63,6 +63,10 @@ class DataSpec:
     typography effect from the remocn registry. Music analysis (audio2scene)
     is used only to time the scene cuts — segment boundaries and beat events
     decide WHEN to switch text, but the visible UI is pure typography.
+
+    Optional `logo` and `symbol` fields enable branded intro animation:
+    - `logo`: main brand logo (PNG/SVG/URL) — animated in intro scene
+    - `symbol`: favicon/icon (PNG/SVG/URL) — watermark in corner throughout video
     """
     music: str
     screen: str = "1280:720"     # "W:H"
@@ -71,6 +75,8 @@ class DataSpec:
     images: List[str] = None
     duration: Optional[float] = None  # max render duration in seconds (None = full song)
     font: Optional[str] = None  # Google Font name (e.g. "Inter", "JetBrains Mono")
+    logo: Optional[str] = None  # path or URL to logo (PNG/SVG) — intro animation
+    symbol: Optional[str] = None  # path or URL to symbol/favicon — corner watermark
 
     @classmethod
     def from_dict(cls, d: dict) -> "DataSpec":
@@ -82,6 +88,8 @@ class DataSpec:
             images=d.get("images", []) or [],
             duration=_parse_duration(d.get("duration")),
             font=d.get("font"),
+            logo=d.get("logo"),
+            symbol=d.get("symbol"),
         )
 
     @property
@@ -1138,6 +1146,59 @@ def generate_remotion_project(
             shutil.copy(str(img_path), str(output_dir / "public" / "images" / img_path.name))
         else:
             print(f"  [warn] image not found: {img_path}")
+
+    # Download/copy logo + symbol (support URL or local path)
+    import urllib.request
+    def _fetch_asset(url_or_path: str, dest_name: str) -> Optional[str]:
+        """Download URL or copy local file to public/assets/. Return filename or None."""
+        dest = output_dir / "public" / "assets" / dest_name
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            if url_or_path.startswith(("http://", "https://")):
+                # Download from URL
+                req = urllib.request.Request(url_or_path, headers={"User-Agent": "Mozilla/5.0"})
+                with urllib.request.urlopen(req, timeout=30) as r:
+                    dest.write_bytes(r.read())
+                print(f"  [logo/symbol] downloaded: {dest_name} from {url_or_path[:60]}...")
+                return dest_name
+            else:
+                # Local file
+                local = data_json_path.parent / url_or_path
+                if local.exists():
+                    shutil.copy(str(local), str(dest))
+                    print(f"  [logo/symbol] copied: {dest_name}")
+                    return dest_name
+                else:
+                    print(f"  [warn] logo/symbol not found: {local}")
+                    return None
+        except Exception as e:
+            print(f"  [warn] failed to fetch {dest_name}: {e}")
+            return None
+
+    logo_file = None
+    symbol_file = None
+    if spec.logo:
+        # Determine extension from URL/path
+        ext = ".png"
+        low = spec.logo.lower()
+        if ".svg" in low: ext = ".svg"
+        elif ".jpg" in low or ".jpeg" in low: ext = ".jpg"
+        elif ".webp" in low: ext = ".webp"
+        logo_file = _fetch_asset(spec.logo, f"logo{ext}")
+    if spec.symbol:
+        ext = ".png"
+        low = spec.symbol.lower()
+        if ".svg" in low: ext = ".svg"
+        elif ".jpg" in low or ".jpeg" in low: ext = ".jpg"
+        elif ".webp" in low: ext = ".webp"
+        symbol_file = _fetch_asset(spec.symbol, f"symbol{ext}")
+
+    # Update timeline.json dengan logo/symbol info
+    timeline["logo"] = logo_file
+    timeline["symbol"] = symbol_file
+    (output_dir / "public" / "timeline.json").write_text(
+        json.dumps(timeline, indent=2, ensure_ascii=False)
+    )
 
     print(f"\n[audio2scene] Project generated at: {output_dir}")
     print(f"\nNext steps:")

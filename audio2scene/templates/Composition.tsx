@@ -72,6 +72,8 @@ interface Timeline {
   width: number;
   height: number;
   font: string | null;
+  logo: string | null;      // logo filename in public/assets/
+  symbol: string | null;    // symbol filename in public/assets/
   slices: SceneSlice[];
 }
 
@@ -282,6 +284,119 @@ const Background: React.FC<{ slice: SceneSlice }> = ({ slice }) => {
   return <AbsoluteFill style={{ background: gradient }} />;
 };
 
+// ─── Intro scene (logo animation) ───────────────────────────────────────────
+
+const IntroScene: React.FC<{ slice: SceneSlice; timeline: Timeline }> = ({ slice, timeline }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const sliceDuration = slice.end - slice.start;
+
+  // Logo animation: scale from 0.5 → 1.0 + fade in (first 30 frames)
+  // Hold (30 to 60), then fade out (last 20 frames)
+  const logoScale = interpolate(frame, [0, 30], [0.5, 1.0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.bezier(0.16, 1, 0.3, 1),
+  });
+  const logoOpacity = interpolate(
+    frame,
+    [0, 15, sliceDuration * fps - 20, sliceDuration * fps],
+    [0, 1, 1, 0],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+
+  // Glow pulse
+  const glowIntensity = interpolate(
+    Math.sin(frame * 0.1),
+    [-1, 1],
+    [0.3, 0.7]
+  );
+
+  return (
+    <AbsoluteFill style={{ backgroundColor: "#0a0a0f" }}>
+      {/* Animated gradient background */}
+      <AbsoluteFill
+        style={{
+          background: `radial-gradient(circle at center, rgba(168, 85, 247, ${glowIntensity * 0.4}) 0%, #0a0a0f 70%)`,
+        }}
+      />
+
+      {/* Logo (if provided) */}
+      {timeline.logo && (
+        <AbsoluteFill
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: logoOpacity,
+            pointerEvents: "none",
+          }}
+        >
+          <Img
+            src={staticFile(`assets/${timeline.logo}`)}
+            style={{
+              maxWidth: "40%",
+              maxHeight: "40%",
+              objectFit: "contain",
+              transform: `scale(${logoScale})`,
+              filter: `drop-shadow(0 0 ${20 * glowIntensity}px rgba(168, 85, 247, ${glowIntensity}))`,
+            }}
+          />
+        </AbsoluteFill>
+      )}
+
+      {/* Title text below logo (if no logo, center the text) */}
+      {slice.text && (
+        <AbsoluteFill
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: timeline.logo ? "flex-end" : "center",
+            paddingBottom: timeline.logo ? "15%" : 0,
+            opacity: interpolate(frame, [20, 40], [0, 1], { extrapolateRight: "clamp" }),
+            pointerEvents: "none",
+          }}
+        >
+          <div
+            style={{
+              fontFamily: timeline.font
+                ? `'${timeline.font}', system-ui, sans-serif`
+                : "system-ui, sans-serif",
+              color: "white",
+              fontSize: 48,
+              fontWeight: 800,
+              textAlign: "center",
+              textShadow: "0 4px 24px rgba(0,0,0,0.9)",
+            }}
+          >
+            {slice.text}
+          </div>
+        </AbsoluteFill>
+      )}
+
+      {/* Symbol watermark (bottom-right) */}
+      {timeline.symbol && (
+        <AbsoluteFill style={{ pointerEvents: "none" }}>
+          <Img
+            src={staticFile(`assets/${timeline.symbol}`)}
+            style={{
+              position: "absolute",
+              bottom: 30,
+              right: 30,
+              width: 60,
+              height: 60,
+              objectFit: "contain",
+              opacity: interpolate(frame, [10, 30], [0, 0.6], { extrapolateRight: "clamp" }),
+              filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.5))",
+            }}
+          />
+        </AbsoluteFill>
+      )}
+    </AbsoluteFill>
+  );
+};
+
 // ─── Scene renderer ─────────────────────────────────────────────────────────
 
 const Scene: React.FC<{ slice: SceneSlice; timeline: Timeline }> = ({ slice, timeline }) => {
@@ -320,6 +435,24 @@ const Scene: React.FC<{ slice: SceneSlice; timeline: Timeline }> = ({ slice, tim
             {renderTypography(slice.effect, slice.text, fontFamily)}
           </div>
         </AbsoluteFill>
+      )}
+
+      {/* Symbol watermark (persist across all scenes) */}
+      {timeline.symbol && (
+        <Img
+          src={staticFile(`assets/${timeline.symbol}`)}
+          style={{
+            position: "absolute",
+            bottom: 20,
+            right: 20,
+            width: 40,
+            height: 40,
+            objectFit: "contain",
+            opacity: 0.5,
+            filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.5))",
+            zIndex: 100,
+          }}
+        />
       )}
     </AbsoluteFill>
   );
@@ -363,10 +496,17 @@ export const MyComposition: React.FC = () => {
         {timeline.slices.map((slice, i) => {
           const dur = Math.max(2, Math.round((slice.end - slice.start) * fps));
           const transitionDur = Math.min(slice.transition_duration_frames, dur - 2);
+          // Use IntroScene for first scene if logo is provided
+          const isFirst = i === 0;
+          const useIntro = isFirst && timeline.logo;
           return (
             <React.Fragment key={i}>
               <TransitionSeries.Sequence durationInFrames={dur}>
-                <Scene slice={slice} timeline={timeline} />
+                {useIntro ? (
+                  <IntroScene slice={slice} timeline={timeline} />
+                ) : (
+                  <Scene slice={slice} timeline={timeline} />
+                )}
               </TransitionSeries.Sequence>
               {i < timeline.slices.length - 1 && (
                 <TransitionSeries.Transition
