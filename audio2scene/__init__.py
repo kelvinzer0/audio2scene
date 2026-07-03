@@ -39,14 +39,22 @@ from .video_editor import (
     events_summary,
     map_video_events,
 )
+from .remotion_generator import (
+    DataSpec,
+    SceneSlice,
+    generate_remotion_project,
+    map_content_to_timeline,
+)
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 __all__ = [
     "LabeledSegment",
     "FeatureMatrix",
     "Segment",
     "VideoEvent",
+    "DataSpec",
+    "SceneSlice",
     "detect",
     "extract_features",
     "load_audio",
@@ -58,6 +66,8 @@ __all__ = [
     "map_video_events",
     "events_to_json",
     "events_summary",
+    "generate_remotion_project",
+    "map_content_to_timeline",
     "__version__",
 ]
 

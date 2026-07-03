@@ -31,6 +31,7 @@ from .timeline import (
     segments_to_txt,
 )
 from .video_editor import events_to_json, events_summary, map_video_events
+from .remotion_generator import generate_remotion_project
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -75,7 +76,63 @@ Examples:
 
 
 def main(argv: List[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+    args = argv if argv is not None else sys.argv[1:]
+
+    # Subcommand: generate-remotion
+    if args and args[0] == "generate-remotion":
+        return _cmd_generate_remotion(args[1:])
+
+    # Default: analyze mode
+    return _cmd_analyze(args)
+
+
+def _cmd_generate_remotion(args: List[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="audio2scene generate-remotion",
+        description="Generate a ready-to-render Remotion project from data.json spec.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""\
+data.json format:
+  {
+    "music": "song.mp3",
+    "screen": "1280:720",
+    "text": ["Title", "Verse 1", "Chorus", "Outro"],
+    "videos": ["clip1.mp4", "clip2.mp4"],
+    "images": ["bg1.jpg", "bg2.png"]
+  }
+
+Example:
+  audio2scene generate-remotion --input data.json --output ./my-video
+  cd my-video && npm install && npx remotion render Audio2ScenePreview out/video.mp4
+""",
+    )
+    parser.add_argument("--input", "-i", required=True, help="Path to data.json")
+    parser.add_argument("--output", "-o", required=True, help="Output directory for Remotion project")
+    parser.add_argument("--hop-length", type=int, default=1024, help="Hop length (default 1024)")
+    parser.add_argument("--min-segment", type=float, default=5.0, help="Min segment length in seconds (default 5.0)")
+    parser.add_argument("--fps", type=int, default=30, help="Frames per second (default 30)")
+    sub_args = parser.parse_args(args)
+
+    try:
+        generate_remotion_project(
+            sub_args.input,
+            sub_args.output,
+            hop_length=sub_args.hop_length,
+            min_segment_sec=sub_args.min_segment,
+            fps=sub_args.fps,
+        )
+        return 0
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 2
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
+def _cmd_analyze(args: List[str]) -> int:
+    parser = build_parser()
+    args = parser.parse_args(args)
 
     outputs: List[str] = []
     multiple = len(args.input) > 1
