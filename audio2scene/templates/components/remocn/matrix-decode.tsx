@@ -49,7 +49,7 @@ export function MatrixDecode({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "white",
+        background: "transparent",
       }}
     >
       <span

@@ -118,7 +118,7 @@ export function RollingNumber({
   from = 0,
   to = 24813,
   fontSize = 120,
-  color = "#171717",
+  color = "#ffffff",
   speed = 1,
 }: RollingNumberProps) {
   const frame = useCurrentFrame();

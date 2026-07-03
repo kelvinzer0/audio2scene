@@ -18,7 +18,7 @@ export interface RGBGlitchTextProps {
 export function RGBGlitchText({
   text,
   fontSize = 96,
-  color = "#171717",
+  color = "#ffffff",
   fontWeight = 700,
   glitchAt = 20,
   glitchDuration = 8,
@@ -64,7 +64,7 @@ export function RGBGlitchText({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#fafafa",
+        background: "transparent",
       }}
     >
       <div

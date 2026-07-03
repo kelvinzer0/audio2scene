@@ -16,7 +16,7 @@ export function SoftBlurIn({
   text,
   blur = 12,
   fontSize = 72,
-  color = "#171717",
+  color = "#ffffff",
   fontWeight = 600,
   speed = 1,
   className,

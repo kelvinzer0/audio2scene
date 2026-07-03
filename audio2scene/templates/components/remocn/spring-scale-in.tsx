@@ -18,7 +18,7 @@ export function SpringScaleIn({
   staggerDelay = 3,
   scaleFrom = 0.7,
   fontSize = 72,
-  color = "#171717",
+  color = "#ffffff",
   fontWeight = 600,
   speed = 1,
   className,

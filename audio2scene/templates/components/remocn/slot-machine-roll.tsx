@@ -16,7 +16,7 @@ export function SlotMachineRoll({
   from = "$99",
   to = "$199",
   fontSize = 120,
-  color = "#171717",
+  color = "#ffffff",
   fontWeight = 700,
   speed = 1,
   className,
@@ -71,7 +71,7 @@ export function SlotMachineRoll({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "white",
+        background: "transparent",
       }}
     >
       <span

@@ -18,7 +18,7 @@ export function ShortSlideRight({
   distance = 24,
   staggerDelay = 3,
   fontSize = 72,
-  color = "#171717",
+  color = "#ffffff",
   fontWeight = 600,
   speed = 1,
   className,

@@ -21,7 +21,7 @@ export function Typewriter({
   charsPerSecond = 22,
   speed = 1,
   fontSize = 48,
-  color = "#171717",
+  color = "#ffffff",
   cursorColor = "#171717",
   fontWeight = 600,
   className,
@@ -36,7 +36,7 @@ export function Typewriter({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "white",
+        background: "transparent",
       }}
     >
       <span

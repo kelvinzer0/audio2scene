@@ -17,7 +17,7 @@ export interface InfiniteMarqueeProps {
 export function InfiniteMarquee({
   text = "ship · build · animate · ",
   fontSize = 120,
-  color = "#171717",
+  color = "#ffffff",
   fontWeight = 900,
   pixelsPerFrame = 4,
   stroke = false,

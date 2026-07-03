@@ -18,7 +18,7 @@ export function TrackingIn({
   startTracking = 0.5,
   startBlur = 12,
   fontSize = 96,
-  color = "#171717",
+  color = "#ffffff",
   fontWeight = 700,
   speed = 1,
   className,
@@ -47,7 +47,7 @@ export function TrackingIn({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "white",
+        background: "transparent",
       }}
     >
       <span
