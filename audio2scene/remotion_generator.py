@@ -205,9 +205,119 @@ def _seeded_random(seed: str) -> float:
 
 
 def _pick_typography(seed: int) -> str:
-    """Deterministic pick from TYPOGRAPHY_EFFECTS."""
+    """Deterministic pick from TYPOGRAPHY_EFFECTS (random fallback)."""
     idx = int(_seeded_random(f"typo-{seed}") * len(TYPOGRAPHY_EFFECTS))
     return TYPOGRAPHY_EFFECTS[idx]
+
+
+# ─── Regex-based typography selection ────────────────────────────────────────
+# Advanced text analysis: select effect based on text content, not random.
+# Priority order: forced rules > content-based rules > random fallback.
+
+import re as _re
+
+# Kata sambung (Indonesian + English) untuk Marker Highlight
+_KATA_SAMBUNG = {
+    "for", "untuk", "dari", "oleh", "adalah", "dan", "atau", "karena",
+    "sehingga", "supaya", "agar", "jika", "kalau", "when", "while",
+    "with", "without", "by", "the", "this", "that",
+}
+
+# Kata kunci tech untuk Matrix Decode
+_TECH_KEYWORDS = {"hack", "decrypt", "encrypt", "code", "system", "matrix", "cyber", "binary"}
+
+# Random fallback pool (untuk text yang tidak match rule apapun)
+_RANDOM_POOL = [
+    "soft-blur-in", "per-character-rise", "bottom-up-letters", "top-down-letters",
+    "micro-scale-fade", "scale-down-fade", "blur-out-up", "focus-blur-resolve",
+    "shared-axis-y", "shared-axis-z", "short-slide-right", "kinetic-center-build",
+    "staggered-fade-up", "tracking-in",
+]
+
+
+def pick_typography_by_text(text: str, scene_index: int) -> str:
+    """Select typography effect based on text content using regex rules.
+
+    Priority order (first match wins):
+      1. Scene pertama (index 0) → Inline Highlight (wajib)
+      2. Mengandung tanda tanya '?' → Typewriter
+      3. Angka only (pure digits) → Slot Machine Roll
+      4. Angka dengan koma/titik (',.' atau '.') → Number Wheel
+      5. Angka dengan space (e.g. "1 2 3") → Rolling Number
+      6. Mengandung kata tech (hack/decrypt/encrypt) → Matrix Decode
+      7. Single word UPPERCASE → RGB Glitch Text
+      8. Mengandung kata sambung (for/untuk/dari/oleh/adalah) → Marker Highlight
+      9. 3 words + 3 periods (e.g. "Fast. Crisp. Fluid.") → Spring Scale In
+     10. 2 kalimat (2+ periods/sentences) → Mask Reveal Up
+     11. Mengandung '-' atau '·' (dot separator) → Infinite Marquee
+     12. Single word → Shimmer Sweep
+     13. Random fallback dari _RANDOM_POOL
+    """
+    if not text or not text.strip():
+        return "soft-blur-in"
+
+    text_stripped = text.strip()
+    text_lower = text_stripped.lower()
+    words = text_stripped.split()
+    word_count = len(words)
+
+    # Rule 1: Scene pertama wajib Inline Highlight
+    if scene_index == 0:
+        return "inline-highlight"
+
+    # Rule 2: Mengandung tanda tanya → Typewriter
+    if "?" in text_stripped:
+        return "typewriter"
+
+    # Rule 3-5: Angka-based rules
+    # Pure digits (e.g. "2024", "100")
+    if _re.fullmatch(r"[\d\s]+", text_stripped) and text_stripped.replace(" ", "").isdigit():
+        if " " in text_stripped:
+            # Angka dengan space → Rolling Number
+            return "rolling-number"
+        # Pure angka tanpa space → Slot Machine Roll
+        return "slot-machine-roll"
+
+    # Angka dengan koma atau titik (e.g. "1,234.56", "3.14")
+    if _re.search(r"\d+[,.]\d+", text_stripped):
+        return "number-wheel"
+
+    # Rule 6: Mengandung kata tech → Matrix Decode
+    for keyword in _TECH_KEYWORDS:
+        if keyword in text_lower:
+            return "matrix-decode"
+
+    # Rule 7: Single word UPPERCASE → RGB Glitch Text
+    if word_count == 1 and text_stripped.isupper() and text_stripped.isalpha():
+        return "rgb-glitch-text"
+
+    # Rule 8: Mengandung kata sambung → Marker Highlight
+    text_words_lower = set(text_lower.replace(".", "").replace(",", "").replace("!", "").split())
+    if text_words_lower & _KATA_SAMBUNG:
+        return "marker-highlight"
+
+    # Rule 9: 3 words + 3 periods (e.g. "Fast. Crisp. Fluid.")
+    period_count = text_stripped.count(".")
+    if word_count >= 3 and period_count >= 3:
+        return "spring-scale-in"
+
+    # Rule 10: 2+ kalimat (2+ periods atau sentence breaks) → Mask Reveal Up
+    sentences = _re.split(r"[.!?]+", text_stripped)
+    sentences = [s.strip() for s in sentences if s.strip()]
+    if len(sentences) >= 2:
+        return "mask-reveal-up"
+
+    # Rule 11: Mengandung '-' atau '·' (dot separator) → Infinite Marquee
+    if "-" in text_stripped or "·" in text_stripped or "—" in text_stripped:
+        return "infinite-marquee"
+
+    # Rule 12: Single word → Shimmer Sweep
+    if word_count == 1:
+        return "shimmer-sweep"
+
+    # Rule 13: Random fallback
+    idx = int(_seeded_random(f"random-{scene_index}-{text_lower[:20]}") * len(_RANDOM_POOL))
+    return _RANDOM_POOL[idx]
 
 
 def _pick_transition(seed: int) -> str:
@@ -310,7 +420,7 @@ def map_content_to_timeline(
         if end - start < 0.3:
             continue  # skip too-short scenes
         text = spec.text[i] if i < n_texts else None
-        effect = _pick_typography(i)
+        effect = pick_typography_by_text(text or "", i)
 
         # Background: prefer video, fallback image, fallback gradient
         video_file = None
