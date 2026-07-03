@@ -343,16 +343,87 @@
   </header>
 
   <section class="section">
-    <h2 class="section-title">Rendered MP4 Preview</h2>
+    <h2 class="section-title">v2 Preview — with remocn components</h2>
     <p class="section-desc">
-      First 30 seconds of the Remotion composition rendered to MP4 (1280×720, 30fps, h264+aac).
-      Full composition is 2:21 — only 30s shown here for fast preview.
+      <strong style="color: var(--accent);">NEW</strong> — Rebuilt composition using
+      <a href="https://github.com/kapishdima/remocn" style="color: var(--accent);">remocn</a>
+      shadcn-style components: <code>ShaderMeshGradient</code> backgrounds,
+      <code>SoftBlurIn</code> text reveals, <code>KineticCenterBuild</code> segment labels,
+      <code>NumberWheel</code> stat counters, <code>whipPan</code> transitions between scenes.
+      Each segment now has its own animated shader background that color-shifts with the music.
     </p>
 
     <div class="video-card">
       <div class="video-card-header">
-        <div class="video-card-title">DEMI - HomeBody · audio2scene → Remotion</div>
-        <div class="video-card-meta">30s · 1280×720 · 2.8 MB</div>
+        <div class="video-card-title">DEMI - HomeBody · audio2scene → Remotion + remocn v2</div>
+        <div class="video-card-meta">10s · 640×360 · 1.2 MB · WebGL shaders</div>
+      </div>
+      <div class="video-wrap">
+        <video controls preload="metadata" poster="remotion-preview/frame-v2-050.png">
+          <source src="remotion-preview/preview-v2-10s.mp4" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+      </div>
+      <div class="video-footer">
+        <div>
+          <span class="badge" style="background: rgba(168, 85, 247, 0.15); border-color: var(--accent-2); color: var(--accent-2);">REMOCN v2</span>
+          <span style="margin-left: 12px;">13 components: shader-mesh-gradient, soft-blur-in, kinetic-center-build, number-wheel, whip-pan, push-through, grain-dissolve, warp-dissolve, staggered-fade-up, typewriter, caret, shader-grain-gradient, shader-warp</span>
+        </div>
+        <div>Audio: archive.org · Analysis: audio2scene v0.4.0</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2 class="section-title">v2 Frame Stills</h2>
+    <p class="section-desc">
+      Single-frame renders from the v2 composition — shows animated shader backgrounds,
+      kinetic text reveals, and number-wheel stat counters.
+    </p>
+
+    <div class="frames-grid">
+      <div class="frame-card">
+        <img src="remotion-preview/frame-v2-050.png" alt="v2 Frame 50">
+        <div class="frame-card-body">
+          <div class="frame-card-title">Title Scene</div>
+          <div class="frame-card-meta">frame 50 · 1.67s · SoftBlurIn text</div>
+        </div>
+      </div>
+      <div class="frame-card">
+        <img src="remotion-preview/frame-v2-200.png" alt="v2 Frame 200">
+        <div class="frame-card-body">
+          <div class="frame-card-title">First Segment</div>
+          <div class="frame-card-meta">frame 200 · 6.67s · KineticCenterBuild</div>
+        </div>
+      </div>
+      <div class="frame-card">
+        <img src="remotion-preview/frame-v2-600.png" alt="v2 Frame 600">
+        <div class="frame-card-body">
+          <div class="frame-card-title">Mid Song</div>
+          <div class="frame-card-meta">frame 600 · 20s · NumberWheel stats</div>
+        </div>
+      </div>
+      <div class="frame-card">
+        <img src="remotion-preview/frame-v2-2000.png" alt="v2 Frame 2000">
+        <div class="frame-card-body">
+          <div class="frame-card-title">Late Segment</div>
+          <div class="frame-card-meta">frame 2000 · 66.7s · shader shift</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2 class="section-title">v1 Preview — original (no remocn)</h2>
+    <p class="section-desc">
+      First 30 seconds of the original Remotion composition (no remocn components).
+      Simpler overlays: white Flash, chromatic aberration Glitch, basic gradient backgrounds.
+    </p>
+
+    <div class="video-card">
+      <div class="video-card-header">
+        <div class="video-card-title">DEMI - HomeBody · audio2scene → Remotion v1</div>
+        <div class="video-card-meta">30s · 1280×720 · 2.8 MB · basic effects</div>
       </div>
       <div class="video-wrap">
         <video controls preload="metadata" poster="remotion-preview/frame-050.png">
@@ -362,7 +433,7 @@
       </div>
       <div class="video-footer">
         <div>
-          <span class="badge">RENDERED</span>
+          <span class="badge">RENDERED v1</span>
           <span style="margin-left: 12px;">via <code>npx remotion render</code></span>
         </div>
         <div>Audio: archive.org · Analysis: audio2scene v0.4.0</div>
@@ -482,9 +553,9 @@
   </section>
 
   <section class="section">
-    <h2 class="section-title">Frame Stills</h2>
+    <h2 class="section-title">v1 Frame Stills (original)</h2>
     <p class="section-desc">
-      Single-frame renders from the Remotion composition at different timestamps.
+      Single-frame renders from the v1 composition (no remocn).
     </p>
 
     <div class="frames-grid">
