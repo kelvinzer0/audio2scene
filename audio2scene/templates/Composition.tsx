@@ -51,6 +51,7 @@ import { InfiniteMarquee } from "./components/remocn/infinite-marquee";
 import { PerspectiveMarquee } from "./components/remocn/perspective-marquee";
 import { MatrixDecode } from "./components/remocn/matrix-decode";
 import { RGBGlitchText } from "./components/remocn/rgb-glitch-text";
+import { InfiniteBentoPan } from "./components/remocn/infinite-bento-pan";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 

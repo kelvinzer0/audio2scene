@@ -40,7 +40,9 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import urllib.error
 import urllib.parse
+import urllib.request
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -1161,10 +1163,43 @@ def generate_remotion_project(
     # 1. Load spec
     spec = DataSpec.from_dict(json.loads(data_json_path.read_text()))
 
-    # Resolve music path relative to data.json
-    music_path = data_json_path.parent / spec.music
-    if not music_path.exists():
-        raise FileNotFoundError(f"Music file not found: {music_path}")
+    # Resolve music: URL → download, local path → use directly
+    if spec.music.startswith(("http://", "https://")):
+        # Download music URL to temp file
+        print(f"[audio2scene] Downloading music: {spec.music[:60]}...")
+        # Detect extension
+        low = spec.music.lower()
+        if ".m4a" in low: ext = ".m4a"
+        elif ".mp3" in low: ext = ".mp3"
+        elif ".wav" in low: ext = ".wav"
+        elif ".flac" in low: ext = ".flac"
+        elif ".ogg" in low: ext = ".ogg"
+        elif ".aac" in low: ext = ".aac"
+        else: ext = ".mp3"
+        music_path = output_dir / "public" / f"audio_downloaded{ext}"
+        music_path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            req = urllib.request.Request(spec.music, headers={
+                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
+                "Accept": "*/*",
+                "Accept-Encoding": "identity",
+            })
+            with urllib.request.urlopen(req, timeout=120) as r:
+                data = r.read()
+            if len(data) < 1000:
+                raise FileNotFoundError(f"Downloaded music too small ({len(data)} bytes) — likely error page")
+            music_path.write_bytes(data)
+            size_mb = len(data) / (1024 * 1024)
+            print(f"[audio2scene] Downloaded: {music_path.name} ({size_mb:.1f} MB)")
+        except urllib.error.HTTPError as e:
+            raise FileNotFoundError(f"HTTP {e.code} downloading music: {spec.music[:60]}...")
+        except Exception as e:
+            raise FileNotFoundError(f"Failed to download music: {e}")
+    else:
+        # Local file
+        music_path = data_json_path.parent / spec.music
+        if not music_path.exists():
+            raise FileNotFoundError(f"Music file not found: {music_path}")
 
     # 2. Run audio2scene
     print(f"[audio2scene] Analyzing {music_path.name}...")
@@ -1271,8 +1306,6 @@ def generate_remotion_project(
 
     # Download/copy assets — support URL (http/https) or local path
     # Works for: videos, images, logo, symbol
-    import urllib.request
-    import urllib.parse
 
     def _detect_ext(url_or_path: str) -> str:
         """Detect file extension from URL or path."""
