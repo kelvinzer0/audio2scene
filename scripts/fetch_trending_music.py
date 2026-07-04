@@ -90,7 +90,7 @@ def parse_music_list(api_response):
             "original_title": music.get("title", ""),
             "artist": music.get("recognitionAuthor") or music.get("creator", "Unknown"),
             "creator": music.get("creator", ""),
-            "play_url": music.get("url", ""),  # TikTok CDN direct MP3 stream
+            "play_url": music.get("downloadLink") or music.get("url", ""),  # Prefer Apple Music (persistent) over TikTok CDN (expires)
             "tiktok_url": music.get("musicUrl", ""),
             "download_url": music.get("downloadLink", ""),
             "cover": music.get("cover", ""),
