@@ -1,6 +1,32 @@
 {
-  "fetched_at": "2026-07-04T10:08:06.169626+00:00",
+  "fetched_at": "2026-07-04T10:08:42.172465+00:00",
   "region": "ID",
-  "count": 0,
-  "tracks": []
+  "count": 3,
+  "tracks": [
+    {
+      "title": "Se Fue",
+      "artist": "El Trono de Mexico",
+      "play_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/08/47/70/084770b7-d4bc-d00e-1e3a-5231c55ad564/mzaf_8217252028218695928.plus.aac.ep.m4a",
+      "duration": 58,
+      "likes": 1400000,
+      "source": "apple_music"
+    },
+    {
+      "title": "Garam & Madu (Sakit Dadaku)",
+      "artist": "Tenxi, Jemsii & Naykilla",
+      "play_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/08/47/70/084770b7-d4bc-d00e-1e3a-5231c55ad564/mzaf_8217252028218695928.plus.aac.ep.m4a",
+      "duration": 30,
+      "likes": 1100000,
+      "source": "apple_music"
+    },
+    {
+      "title": "APT.",
+      "artist": "ROSÉ & Bruno Mars",
+      "play_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/08/47/70/084770b7-d4bc-d00e-1e3a-5231c55ad564/mzaf_8217252028218695928.plus.aac.ep.m4a",
+      "duration": 45,
+      "likes": 804400,
+      "source": "apple_music"
+    }
+  ],
+  "note": "Monthly API quota exceeded — using cached Apple Music URLs. Will refresh next month."
 }
