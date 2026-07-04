@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-07-04T09:11:05.909796+00:00",
+  "fetched_at": "2026-07-04T09:49:01.210171+00:00",
   "region": "ID",
   "count": 7,
   "tracks": [
@@ -11,7 +11,7 @@
       "play_url": "https://v77.tiktokcdn-eu.com/6f72d41817b87aefc461a52ce3c04383/6a48c5bd/video/tos/useast2a/tos-useast2a-v-27dcd7/ooSikIcMBORTQAFroifQBMON6iHQMzgKozXETL/?a=1233&bti=ODszNWYuMDE6&&bt=125&ft=.NpOcInz7ThrkszGXq8Zmo&mime_type=audio_mpeg&rc=ZGRnODlpNzw4ZzY8OzY7ZUBpamV1bm05cmgzdjMzNzU8M0AwMmMtLl9hXmMxXjEwY18uYSNfaS4wMmRjZzZgLS1kMTZzcw%3D%3D&vvpl=1&l=20260703083410F50E8044B8BBE31A1A06&btag=e00048000",
       "tiktok_url": "https://www.tiktok.com/music/-7427009406180199173",
       "download_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/08/47/70/084770b7-d4bc-d00e-1e3a-5231c55ad564/mzaf_8217252028218695928.plus.aac.ep.m4a",
-      "cover": "https://p16-common-sign.tiktokcdn-eu.com/tos-alisg-avt-0068/9b5ec81eaa865fb7c878ff611b955585~tplv-tiktokx-cropcenter:100:100.jpeg?dr=10399&refresh_token=7a7a8669&x-expires=1783238400&x-signature=zIsD4wAdEiPhCAG8KyV1XxpL2QI%3D&t=4d5b0474&ps=13740610&shp=a5d48078&shcp=81f88b70&idc=no1a",
+      "cover": "https://sys-datapoint.flaidata.com/Sound/Avatars/7427009406180199173.jpeg",
       "duration": 58,
       "likes": 1400000,
       "plays": 0,
@@ -86,7 +86,7 @@
       "play_url": "https://sys-datapoint.flaidata.com/media/sounds/7207794401547668251.mp3",
       "tiktok_url": "https://www.tiktok.com/music/-7207794401547668251",
       "download_url": null,
-      "cover": "https://p16-common-sign.tiktokcdn-eu.com/tos-alisg-avt-0068/7329150609147232257~tplv-tiktokx-cropcenter:100:100.jpeg?dr=10399&refresh_token=e89e22d2&x-expires=1783238400&x-signature=h8t3YLqo3Yz0sOnW1f5vRzfUouQ%3D&t=4d5b0474&ps=13740610&shp=a5d48078&shcp=81f88b70&idc=no1a",
+      "cover": "https://sys-datapoint.flaidata.com/Sound/Avatars/7207794401547668251.jpeg",
       "duration": 105,
       "likes": 83100,
       "plays": 0,
