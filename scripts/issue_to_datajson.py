@@ -49,7 +49,19 @@ def parse_issue_body(body: str) -> dict:
 
             if key in ("text", "videos", "images"):
                 # Multi-line: split by newline, filter empty
-                items = [line.strip() for line in value.split("\n") if line.strip() and not line.startswith("#")]
+                items = []
+                for line in value.split("\n"):
+                    line = line.strip()
+                    if not line or line.startswith("#") or line == "_No response_":
+                        continue
+                    # Extract URL from <img src="..."> tags (GitHub pastes images as HTML)
+                    img_match = re.search(r'src="(https?://[^"]+)"', line)
+                    if img_match:
+                        items.append(img_match.group(1))
+                    elif line.startswith("http"):
+                        items.append(line)
+                    elif key == "text":
+                        items.append(line)
                 if key == "text":
                     data["text"] = items
                 elif key == "videos":

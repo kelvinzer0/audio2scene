@@ -82,15 +82,32 @@ jobs:
 
       - name: 🎬 Generate + Render video
         id: render
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          echo "=== Parsed data.json ==="
+          cat /tmp/data.json
+          echo ""
+          echo "=== Render scale: ${{ steps.parse.outputs.render_scale }} ==="
+          echo ""
+
+          # Run generate + render
           audio2scene generate-remotion \
             --input /tmp/data.json \
             --output ./my-video \
-            --render --scale ${{ steps.parse.outputs.render_scale }}
-        continue-on-error: true
+            --render --scale ${{ steps.parse.outputs.render_scale }} 2>&1 || {
+              echo "RENDER_EXIT_CODE=$?" >> $GITHUB_ENV
+              echo "render_failed=true" >> $GITHUB_OUTPUT
+              echo "=== Render failed — checking output ==="
+              ls -la ./my-video/out/ 2>/dev/null || echo "No output directory"
+              exit 0
+            }
+          echo "render_failed=false" >> $GITHUB_OUTPUT
+          echo "=== Render output ==="
+          ls -la ./my-video/out/video.mp4 2>/dev/null || echo "No video.mp4 found"
 
       - name: 📦 Upload MP4 artifact
-        if: steps.render.outcome == 'success'
+        if: steps.render.outputs.render_failed != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: video-${{ github.event.issue.number }}
@@ -98,7 +115,7 @@ jobs:
           retention-days: 30
 
       - name: 💬 Comment — success
-        if: steps.render.outcome == 'success'
+        if: steps.render.outputs.render_failed != 'true'
         uses: actions/github-script@v7
         with:
           script: |
@@ -126,7 +143,7 @@ jobs:
             })
 
       - name: 💬 Comment — failed
-        if: steps.render.outcome != 'success'
+        if: steps.render.outputs.render_failed == 'true'
         uses: actions/github-script@v7
         with:
           script: |
