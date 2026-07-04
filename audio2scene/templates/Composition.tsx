@@ -248,6 +248,82 @@ const KEN_BURNS_PATTERNS = [
   (p: number) => ({ scale: 1.2 + p * 0.15, x: p * 30 - 15, y: p * 20 - 10 }),
 ];
 
+/**
+ * BlurFill wrapper — eliminates black spots in portrait mode.
+ * Renders the media TWICE:
+ *   1. Background layer: scaled to fill entire frame + heavy blur (covers gaps)
+ *   2. Foreground layer: objectFit cover (the actual visible media)
+ * This ensures NO black bars even when source aspect ratio differs from output.
+ */
+const BlurFillVideo: React.FC<{ src: string; scale?: string }> = ({ src, scale = "1.1" }) => {
+  return (
+    <>
+      {/* Blurred background fill — covers any black gaps */}
+      <Video
+        src={src}
+        style={{
+          position: "absolute",
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          scale: "1.5",
+          transform: "scale(1.5)",
+          filter: "blur(40px) brightness(0.4)",
+          zIndex: 0,
+        }}
+        muted
+        loop
+      />
+      {/* Foreground — actual visible video */}
+      <Video
+        src={src}
+        style={{
+          position: "absolute",
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          scale,
+          zIndex: 1,
+        }}
+        muted
+        loop
+      />
+    </>
+  );
+};
+
+const BlurFillImage: React.FC<{ src: string; transform?: string }> = ({ src, transform }) => {
+  return (
+    <>
+      {/* Blurred background fill */}
+      <Img
+        src={src}
+        style={{
+          position: "absolute",
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          transform: "scale(1.5)",
+          filter: "blur(40px) brightness(0.4)",
+          zIndex: 0,
+        }}
+      />
+      {/* Foreground */}
+      <Img
+        src={src}
+        style={{
+          position: "absolute",
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          transform: transform || "scale(1.15)",
+          zIndex: 1,
+        }}
+      />
+    </>
+  );
+};
+
 const Background: React.FC<{ slice: SceneSlice; sceneIndex?: number }> = ({ slice, sceneIndex = 0 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -258,12 +334,7 @@ const Background: React.FC<{ slice: SceneSlice; sceneIndex?: number }> = ({ slic
   if (slice.video && useVideo) {
     return (
       <AbsoluteFill style={{ overflow: "hidden" }}>
-        <Video
-          src={staticFile(`videos/${slice.video}`)}
-          style={{ width: "100%", height: "100%", objectFit: "cover", scale: "1.1" }}
-          muted
-          loop
-        />
+        <BlurFillVideo src={staticFile(`videos/${slice.video}`)} scale="1.1" />
         <AbsoluteFill style={{ backgroundColor: "rgba(0,0,0,0.55)" }} />
       </AbsoluteFill>
     );
@@ -277,19 +348,14 @@ const Background: React.FC<{ slice: SceneSlice; sceneIndex?: number }> = ({ slic
     const anim = KEN_BURNS_PATTERNS[patternIdx](progress);
     return (
       <AbsoluteFill style={{ overflow: "hidden" }}>
-        <Img
+        <BlurFillImage
           src={staticFile(`images/${slice.image}`)}
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            transform: `scale(${anim.scale}) translate(${anim.x}px, ${anim.y}px)`,
-          }}
+          transform={`scale(${anim.scale}) translate(${anim.x}px, ${anim.y}px)`}
         />
         {/* Subtle parallax glow overlay for "alive" feel */}
         <AbsoluteFill
           style={{
-            backgroundColor: "rgba(0,0,0,0.45)",
+            zIndex: 2,
             background: `linear-gradient(${135 + progress * 90}deg, rgba(168,85,247,0.15) 0%, rgba(0,0,0,0.5) 50%, rgba(34,211,238,0.1) 100%)`,
           }}
         />
@@ -301,12 +367,7 @@ const Background: React.FC<{ slice: SceneSlice; sceneIndex?: number }> = ({ slic
   if (slice.video) {
     return (
       <AbsoluteFill style={{ overflow: "hidden" }}>
-        <Video
-          src={staticFile(`videos/${slice.video}`)}
-          style={{ width: "100%", height: "100%", objectFit: "cover", scale: "1.1" }}
-          muted
-          loop
-        />
+        <BlurFillVideo src={staticFile(`videos/${slice.video}`)} scale="1.1" />
         <AbsoluteFill style={{ backgroundColor: "rgba(0,0,0,0.55)" }} />
       </AbsoluteFill>
     );
