@@ -25,11 +25,38 @@ Manual labeling of song structure is time-consuming and doesn't scale. Audio2Sce
 
 ## Install
 
+### Option 1: pipx (recommended — isolated environment)
+
 ```bash
+pipx install git+https://github.com/kelvinzer0/audio2scene.git
+```
+
+### Option 2: pip
+
+```bash
+pip install git+https://github.com/kelvinzer0/audio2scene.git
+```
+
+### Option 3: From source (development)
+
+```bash
+git clone https://github.com/kelvinzer0/audio2scene.git
+cd audio2scene
 pip install -e .
 ```
 
-System dependencies: `ffmpeg` (for MP3/M4A/AAC decoding), `libsndfile` (usually installed with soundfile).
+### Verify installation
+
+```bash
+audio2scene --version
+# audio2scene 0.5.0
+```
+
+### System dependencies
+
+- `ffmpeg` — for MP3/M4A/AAC audio decoding
+- `libsndfile` — usually installed with soundfile
+- `Node.js 18+` + `npm` — required only for `--render` flag (Remotion)
 
 ## CLI
 
