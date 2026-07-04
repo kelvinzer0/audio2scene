@@ -40,6 +40,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import urllib.parse
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -148,6 +149,26 @@ class SceneSlice:
     segment_label: str = ""
     segment_intensity: float = 0.0
     segment_intensity_label: str = ""
+
+
+# ─── URL/path helpers (module-level, used by map + generate) ─────────────────
+
+def _asset_filename(url_or_path: str, idx: int = 0) -> str:
+    """Extract a safe filename from URL or local path.
+    
+    Examples:
+      'videos/clip1.mp4' → 'clip1.mp4'
+      'https://example.com/assets/bg.jpg' → 'bg.jpg'
+      'https://cdn.pixabay.com/photo/2024/01/15/14/30/concert-12345.jpg' → 'concert-12345.jpg'
+    """
+    parsed = urllib.parse.urlparse(url_or_path)
+    path = parsed.path if parsed.scheme else url_or_path
+    name = Path(path).name
+    if not name or name == "/":
+        name = f"asset-{idx}"
+    # Sanitize
+    safe = "".join(c if c.isalnum() or c in "-_." else "_" for c in name)
+    return safe
 
 
 # ─── Content mapping ─────────────────────────────────────────────────────────
@@ -357,8 +378,8 @@ def map_content_to_timeline(
     if not spec.text:
         # No text → just one video/image scene for the whole duration
         end = total_duration or (segments[-1].end if segments else 30.0)
-        video_file = Path(spec.videos[0]).name if spec.videos else None
-        image_file = Path(spec.images[0]).name if spec.images else None
+        video_file = _asset_filename(spec.videos[0]) if spec.videos else None
+        image_file = _asset_filename(spec.images[0]) if spec.images else None
         slices.append(SceneSlice(
             kind="video" if video_file else ("image" if image_file else "text"),
             start=0.0, end=end,
@@ -431,10 +452,10 @@ def map_content_to_timeline(
         video_file = None
         image_file = None
         if spec.videos:
-            video_file = Path(spec.videos[video_idx % len(spec.videos)]).name
+            video_file = _asset_filename(spec.videos[video_idx % len(spec.videos)], video_idx)
             video_idx += 1
         if spec.images:
-            image_file = Path(spec.images[image_idx % len(spec.images)]).name
+            image_file = _asset_filename(spec.images[image_idx % len(spec.images)], image_idx)
             image_idx += 1
         # Determine kind: prefer "video" if both available (component will alternate)
         bg_kind = "video" if video_file else ("image" if image_file else "text")
@@ -1248,69 +1269,106 @@ def generate_remotion_project(
         json.dumps(timeline, indent=2, ensure_ascii=False)
     )
 
-    # Copy videos
-    for v in spec.videos:
-        v_path = data_json_path.parent / v
-        if v_path.exists():
-            shutil.copy(str(v_path), str(output_dir / "public" / "videos" / v_path.name))
-        else:
-            print(f"  [warn] video not found: {v_path}")
-
-    # Copy images
-    for img in spec.images:
-        img_path = data_json_path.parent / img
-        if img_path.exists():
-            shutil.copy(str(img_path), str(output_dir / "public" / "images" / img_path.name))
-        else:
-            print(f"  [warn] image not found: {img_path}")
-
-    # Download/copy logo + symbol (support URL or local path)
+    # Download/copy assets — support URL (http/https) or local path
+    # Works for: videos, images, logo, symbol
     import urllib.request
-    def _fetch_asset(url_or_path: str, dest_name: str) -> Optional[str]:
-        """Download URL or copy local file to public/assets/. Return filename or None."""
-        dest = output_dir / "public" / "assets" / dest_name
+    import urllib.parse
+
+    def _detect_ext(url_or_path: str) -> str:
+        """Detect file extension from URL or path."""
+        low = url_or_path.lower()
+        if ".svg" in low: return ".svg"
+        if ".webp" in low: return ".webp"
+        if ".mp4" in low: return ".mp4"
+        if ".webm" in low: return ".webm"
+        if ".mov" in low: return ".mov"
+        if ".jpg" in low or ".jpeg" in low: return ".jpg"
+        if ".png" in low: return ".png"
+        if ".gif" in low: return ".gif"
+        return ""
+
+    def _url_to_filename(url: str, idx: int, ext: str) -> str:
+        """Generate a safe filename from URL or path (uses module-level _asset_filename)."""
+        name = _asset_filename(url, idx)
+        # Ensure extension is present
+        if not Path(name).suffix and ext:
+            name = f"{name}{ext}"
+        return name
+
+    def _fetch_asset(url_or_path: str, dest_dir: Path, dest_name: str) -> Optional[str]:
+        """Download URL or copy local file to dest_dir/dest_name. Return dest_name or None."""
+        dest = dest_dir / dest_name
         dest.parent.mkdir(parents=True, exist_ok=True)
         try:
             if url_or_path.startswith(("http://", "https://")):
-                # Download from URL
                 req = urllib.request.Request(url_or_path, headers={"User-Agent": "Mozilla/5.0"})
-                with urllib.request.urlopen(req, timeout=30) as r:
+                with urllib.request.urlopen(req, timeout=60) as r:
                     dest.write_bytes(r.read())
-                print(f"  [logo/symbol] downloaded: {dest_name} from {url_or_path[:60]}...")
+                size_kb = dest.stat().st_size / 1024
+                print(f"  [download] {dest_name} ({size_kb:.0f} KB) ← {url_or_path[:60]}...")
                 return dest_name
             else:
-                # Local file
                 local = data_json_path.parent / url_or_path
                 if local.exists():
                     shutil.copy(str(local), str(dest))
-                    print(f"  [logo/symbol] copied: {dest_name}")
+                    print(f"  [copy] {dest_name}")
                     return dest_name
                 else:
-                    print(f"  [warn] logo/symbol not found: {local}")
+                    print(f"  [warn] not found: {local}")
                     return None
         except Exception as e:
             print(f"  [warn] failed to fetch {dest_name}: {e}")
             return None
 
-    logo_file = None
-    symbol_file = None
-    if spec.logo:
-        # Determine extension from URL/path
-        ext = ".png"
-        low = spec.logo.lower()
-        if ".svg" in low: ext = ".svg"
-        elif ".jpg" in low or ".jpeg" in low: ext = ".jpg"
-        elif ".webp" in low: ext = ".webp"
-        logo_file = _fetch_asset(spec.logo, f"logo{ext}")
-    if spec.symbol:
-        ext = ".png"
-        low = spec.symbol.lower()
-        if ".svg" in low: ext = ".svg"
-        elif ".jpg" in low or ".jpeg" in low: ext = ".jpg"
-        elif ".webp" in low: ext = ".webp"
-        symbol_file = _fetch_asset(spec.symbol, f"symbol{ext}")
+    # === Videos: download (URL) or copy (local) ===
+    video_files = []
+    for idx, v in enumerate(spec.videos):
+        ext = _detect_ext(v) or ".mp4"
+        name = _url_to_filename(v, idx, ext)
+        result = _fetch_asset(v, output_dir / "public" / "videos", name)
+        if result:
+            video_files.append(result)
 
-    # Update timeline.json dengan logo/symbol info
+    # === Images: download (URL) or copy (local) ===
+    image_files = []
+    for idx, img in enumerate(spec.images):
+        ext = _detect_ext(img) or ".jpg"
+        name = _url_to_filename(img, idx, ext)
+        result = _fetch_asset(img, output_dir / "public" / "images", name)
+        if result:
+            image_files.append(result)
+
+    # === Logo: download (URL) or copy (local) ===
+    logo_file = None
+    if spec.logo:
+        ext = _detect_ext(spec.logo) or ".png"
+        logo_file = _fetch_asset(spec.logo, output_dir / "public" / "assets", f"logo{ext}")
+
+    # === Symbol: download (URL) or copy (local) ===
+    symbol_file = None
+    if spec.symbol:
+        ext = _detect_ext(spec.symbol) or ".png"
+        symbol_file = _fetch_asset(spec.symbol, output_dir / "public" / "assets", f"symbol{ext}")
+
+    # === Update timeline.json dengan resolved filenames ===
+    # Build lookup: original spec entry → resolved filename
+    video_lookup = {}
+    for i, v in enumerate(spec.videos):
+        orig_name = _asset_filename(v, i)
+        if i < len(video_files):
+            video_lookup[orig_name] = video_files[i]
+    image_lookup = {}
+    for i, img in enumerate(spec.images):
+        orig_name = _asset_filename(img, i)
+        if i < len(image_files):
+            image_lookup[orig_name] = image_files[i]
+
+    for s in timeline["slices"]:
+        if s.get("video") and video_lookup:
+            s["video"] = video_lookup.get(s["video"], video_files[0] if video_files else None)
+        if s.get("image") and image_lookup:
+            s["image"] = image_lookup.get(s["image"], image_files[0] if image_files else None)
+
     timeline["logo"] = logo_file
     timeline["symbol"] = symbol_file
     (output_dir / "public" / "timeline.json").write_text(
