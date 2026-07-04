@@ -48,7 +48,11 @@ export function Typewriter({
           letterSpacing: "-0.03em",
           fontFamily:
             "var(--font-geist-sans), -apple-system, BlinkMacSystemFont, sans-serif",
-          whiteSpace: "pre",
+          // pre-wrap: preserve cursor space + allow wrapping on long text
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+          textAlign: "center",
+          maxWidth: "100%",
         }}
       >
         {tw.text}

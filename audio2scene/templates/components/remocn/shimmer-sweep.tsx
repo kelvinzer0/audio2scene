@@ -39,6 +39,11 @@ export function ShimmerSweep({
       "var(--font-geist-sans), -apple-system, BlinkMacSystemFont, sans-serif",
     margin: 0,
     lineHeight: 1,
+    // Allow long single-word text to wrap (prevents horizontal overflow)
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
+    textAlign: "center",
+    maxWidth: "100%",
   };
 
   return (

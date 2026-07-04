@@ -84,6 +84,10 @@ export function SlotMachineRoll({
           fontFamily:
             "var(--font-geist-sans), -apple-system, BlinkMacSystemFont, sans-serif",
           lineHeight: 1.1,
+          // Center-align & allow wrapping for long digit strings
+          textAlign: "center",
+          maxWidth: "100%",
+          display: "inline-block",
         }}
       >
         {columns}

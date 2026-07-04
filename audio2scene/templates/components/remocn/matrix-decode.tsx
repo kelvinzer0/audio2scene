@@ -59,7 +59,11 @@ export function MatrixDecode({
           fontWeight,
           color,
           letterSpacing: "0.05em",
-          whiteSpace: "pre",
+          // pre-wrap: preserve text alignment + allow wrapping
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+          textAlign: "center",
+          maxWidth: "100%",
           fontFamily:
             "var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace",
         }}

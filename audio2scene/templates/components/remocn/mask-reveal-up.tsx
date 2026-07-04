@@ -55,10 +55,15 @@ export function MaskRevealUp({
           fontWeight,
           color,
           letterSpacing: "-0.03em",
-          lineHeight: 1.1,
+          lineHeight: 1.2,
           textAlign: "center",
           fontFamily:
             "var(--font-geist-sans), -apple-system, BlinkMacSystemFont, sans-serif",
+          // Allow long sentences to wrap (each rendered "line" can wrap further)
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+          maxWidth: "100%",
+          display: "inline-block",
         }}
       >
         {lines.map((line, i) => {
@@ -116,6 +121,8 @@ export function MaskRevealUp({
                 opacity,
                 transform: `translateY(${y}px)`,
                 filter: `blur(${blur}px)`,
+                // Padding between lines for breathing room
+                paddingBottom: i < lines.length - 1 ? "0.15em" : 0,
               }}
             >
               {line}

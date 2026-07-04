@@ -49,6 +49,11 @@ export function SpringScaleIn({
           letterSpacing: "-0.03em",
           fontFamily:
             "var(--font-geist-sans), -apple-system, BlinkMacSystemFont, sans-serif",
+          // Allow long text to wrap to multiple lines, centered
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+          textAlign: "center",
+          maxWidth: "100%",
         }}
       >
         {words.map((word, i) => {

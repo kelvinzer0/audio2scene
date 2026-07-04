@@ -66,6 +66,12 @@ export function InlineHighlight({
           letterSpacing: "-0.03em",
           fontFamily:
             "var(--font-geist-sans), -apple-system, BlinkMacSystemFont, sans-serif",
+          // Preserve leading/trailing spaces in before/after strings
+          whiteSpace: "pre-wrap",
+          // Allow long words to wrap onto next line
+          wordBreak: "break-word",
+          // Center-align multi-line wrapped text
+          textAlign: "center",
         }}
       >
         {before}

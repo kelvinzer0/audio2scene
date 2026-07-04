@@ -52,7 +52,11 @@ export function RGBGlitchText({
     letterSpacing: "-0.03em",
     fontFamily:
       "var(--font-geist-sans), -apple-system, BlinkMacSystemFont, sans-serif",
-    whiteSpace: "pre",
+    // pre-wrap: allow text to wrap on long content (prevents horizontal overflow)
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
+    textAlign: "center",
+    maxWidth: "100%",
     mixBlendMode: "multiply",
   };
 
@@ -80,7 +84,11 @@ export function RGBGlitchText({
             letterSpacing: "-0.03em",
             fontFamily:
               "var(--font-geist-sans), -apple-system, BlinkMacSystemFont, sans-serif",
-            whiteSpace: "pre",
+            // Match baseStyle: allow wrapping for long text
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+            textAlign: "center",
+            maxWidth: "100%",
           }}
         >
           {text}

@@ -47,6 +47,11 @@ export function SoftBlurIn({
           letterSpacing: "-0.05em",
           fontFamily:
             "var(--font-geist-sans), -apple-system, BlinkMacSystemFont, sans-serif",
+          // Allow long text to wrap to multiple lines, centered
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+          textAlign: "center",
+          maxWidth: "100%",
         }}
       >
         {chars.map((char, i) => {

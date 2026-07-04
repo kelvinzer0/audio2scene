@@ -96,6 +96,38 @@ const TYPOGRAPHY_PROPS = {
   highlightColor: "#22d3ee",  // cyan highlight for inline
 };
 
+/**
+ * Parse text into a numeric value for number-based effects.
+ * Handles:
+ *   - "2024" → 2024
+ *   - "1 2 3" → 123 (concatenated digits, used for rolling-number)
+ *   - "1,234.56" → 1234.56 (decimal)
+ *   - "$199" → 199 (strips currency symbols)
+ * Returns null if no digits found.
+ */
+function parseNumeric(text: string): number | null {
+  // Strip everything that's not a digit, comma, period, or space
+  const cleaned = text.replace(/[^\d.,\s]/g, "").trim();
+  if (!cleaned) return null;
+  // Concatenate all digits (ignore thousands separators and spaces)
+  const digitsOnly = cleaned.replace(/[.,\s]/g, "");
+  if (!digitsOnly || !/^\d+$/.test(digitsOnly)) return null;
+  return parseInt(digitsOnly, 10);
+}
+
+/**
+ * Split multi-sentence text into separate lines for line-by-line effects.
+ * "Hello. World! How are you?" → "Hello\nWorld\nHow are you"
+ */
+function splitSentencesToLines(text: string): string {
+  // Split on sentence-ending punctuation, keep the content
+  const sentences = text
+    .split(/[.!?]+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+  return sentences.length >= 2 ? sentences.join("\n") : text;
+}
+
 function renderTypography(effect: string, text: string, fontFamily: string) {
   const baseProps = {
     ...TYPOGRAPHY_PROPS,
@@ -119,7 +151,11 @@ function renderTypography(effect: string, text: string, fontFamily: string) {
     case "kinetic-center-build": return <KineticCenterBuild {...baseProps} text={text} />;
     case "short-slide-down":     return <ShortSlideDown {...baseProps} text={text} />;
     case "staggered-fade-up":    return <StaggeredFadeUp {...baseProps} text={text} />;
-    case "mask-reveal-up":       return <MaskRevealUp {...baseProps} text={text} />;
+    case "mask-reveal-up": {
+      // Split multi-sentence text into lines so the reveal effect works per-sentence
+      const multiline = splitSentencesToLines(text);
+      return <MaskRevealUp {...baseProps} text={multiline} />;
+    }
     case "tracking-in":          return <TrackingIn {...baseProps} text={text} />;
     case "shimmer-sweep":        return <ShimmerSweep {...baseProps} text={text} />;
     case "typewriter":           return <Typewriter {...baseProps} text={text} />;
@@ -134,16 +170,26 @@ function renderTypography(effect: string, text: string, fontFamily: string) {
     case "fade-through":         return <FadeThrough {...baseProps} fromText={text} toText={text} />;
     case "shared-axis-y":        return <SharedAxisY {...baseProps} fromText={text} toText={text} />;
     case "shared-axis-z":        return <SharedAxisZ {...baseProps} fromText={text} toText={text} />;
-    // Number-based components: render text via SoftBlurIn fallback (these need numeric `to` prop)
-    case "number-wheel":
-    case "rolling-number":       return <SoftBlurIn {...baseProps} text={text} />;
+    // Number-based components: parse digits from text, fall back to SoftBlurIn if no digits
+    case "number-wheel": {
+      const num = parseNumeric(text);
+      if (num !== null) return <NumberWheel {...baseProps} from={0} to={num} />;
+      return <SoftBlurIn {...baseProps} text={text} />;
+    }
+    case "rolling-number": {
+      const num = parseNumeric(text);
+      if (num !== null) return <RollingNumber {...baseProps} from={0} to={num} />;
+      return <SoftBlurIn {...baseProps} text={text} />;
+    }
     // Highlight components: need before/highlight/after — split text at first space
     case "inline-highlight": {
       const parts = text.split(" ");
       if (parts.length >= 2) {
         const highlight = parts[0];
         const before = "";
-        const after = parts.slice(1).join(" ");
+        // Add leading space to "after" so there's a gap between highlight and after text
+        // (same fix as marker-highlight — prevents "Weare open" bug)
+        const after = ` ${parts.slice(1).join(" ")}`;
         return <InlineHighlight {...baseProps} before={before} highlight={highlight} after={after} />;
       }
       return <SoftBlurIn {...baseProps} text={text} />;
@@ -526,9 +572,21 @@ const Scene: React.FC<{ slice: SceneSlice; timeline: Timeline; sceneIndex?: numb
             justifyContent: "center",
             opacity: fadeOut,
             pointerEvents: "none",
+            // Overflow protection: constrain typography to viewport with breathing room
+            padding: "0 6%",
+            boxSizing: "border-box",
           }}
         >
-          <div style={{ fontFamily }}>
+          <div
+            style={{
+              fontFamily,
+              maxWidth: "100%",
+              textAlign: "center",
+              // Allow long words to break (prevents horizontal overflow on long tokens)
+              wordBreak: "break-word",
+              overflowWrap: "break-word",
+            }}
+          >
             {renderTypography(slice.effect, slice.text, fontFamily)}
           </div>
         </AbsoluteFill>
