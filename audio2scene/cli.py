@@ -37,21 +37,37 @@ from .remotion_generator import generate_remotion_project
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="audio2scene",
-        description="AI-powered structural labeling for instrumental music.",
+        description="Auto Video Editor — data.json in, MP4 out. 100% offline.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""\
-Examples:
-  audio2scene music.mp3                 # default: pretty timeline to stdout
+SUBCOMMANDS:
+  generate-remotion    Generate Remotion video project from data.json (MAIN)
+  (no subcommand)      Analyze audio file (segments, beats, events)
+
+QUICK START — Generate Video:
+  audio2scene generate-remotion -i data.json -o ./my-video --render --scale 0.5
+
+  data.json format:
+    {
+      "music": "song.mp3",
+      "text": ["Title", "Scene 2", "Thanks for watching"],
+      "screen": "1080:1920",
+      "duration": "30s",
+      "font": "Inter",
+      "logo": "https://example.com/logo.png",
+      "videos": ["https://cdn.pixabay.com/video/clip.mp4"],
+      "images": ["https://cdn.pixabay.com/photo/bg.jpg"]
+    }
+
+ANALYZE AUDIO:
+  audio2scene music.mp3                 # pretty timeline
   audio2scene music.mp3 --json          # JSON output
-  audio2scene music.mp3 --csv           # CSV output
-  audio2scene music.mp3 --txt           # TXT (MM:SS Label) output
-  audio2scene music.mp3 --pretty        # pretty timeline (default)
-  audio2scene music.mp3 --video-editor  # video editor events (Cut/Flash/Zoom/Glitch/Fade)
+  audio2scene music.mp3 --video-editor  # video editor events JSON
   audio2scene music.mp3 -o labels.json  # write to file
   audio2scene *.mp3                     # batch processing
 """,
     )
-    p.add_argument("input", nargs="+", help="Path(s) to audio file(s). Supports MP3/WAV/FLAC/OGG/AAC/M4A.")
+    p.add_argument("input", nargs="*", help="Path(s) to audio file(s) for analysis mode. Use 'generate-remotion' subcommand for video generation.")
     p.add_argument("--format", choices=["json", "csv", "txt", "pretty", "video-editor"], default="pretty",
                    help="Output format (default: pretty)")
     p.add_argument("--json", action="store_const", const="json", dest="format", help="Shorthand for --format json")
@@ -216,6 +232,10 @@ def _cmd_analyze(args: List[str]) -> int:
 
     outputs: List[str] = []
     multiple = len(args.input) > 1
+
+    if not args.input:
+        parser.print_help()
+        return 0
 
     for idx, path in enumerate(args.input):
         p = Path(path)
