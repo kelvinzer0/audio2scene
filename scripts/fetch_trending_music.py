@@ -14,7 +14,7 @@ import json
 import os
 import sys
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 API_KEY = os.environ.get("RAPIDAPI_KEY", "")
@@ -35,6 +35,7 @@ def fetch_trending_music(sound_type="Original", sorting="likes", days=7, order="
         "Content-Type": "application/json",
         "x-rapidapi-host": API_HOST,
         "x-rapidapi-key": API_KEY,
+        "User-Agent": "Mozilla/5.0",
     })
     
     with urllib.request.urlopen(req, timeout=30) as r:
@@ -44,28 +45,67 @@ def fetch_trending_music(sound_type="Original", sorting="likes", days=7, order="
 
 
 def parse_music_list(api_response):
-    """Parse API response into clean list of trending tracks."""
+    """Parse API response into clean list of trending tracks.
+    
+    API response structure:
+    {
+      "data": {
+        "stats": [
+          {
+            "music": {
+              "title": "...",
+              "url": "https://v77.tiktokcdn-eu.com/...",  # direct MP3 stream URL
+              "creator": "...",
+              "cover": "...",
+              "duration": 58,
+              "reposts": 1400000,
+              "musicUrl": "https://www.tiktok.com/music/...",
+              "downloadLink": "https://audio-ssl.itunes.apple.com/...",
+              "recognitionTitle": "Se Fue",
+              "recognitionAuthor": "El Trono de Mexico",
+            },
+            "calculations": { "plays": ..., "likes": ... }
+          }
+        ]
+      }
+    }
+    """
     tracks = []
     
-    # API response format varies — try common keys
-    items = api_response if isinstance(api_response, list) else api_response.get("data", api_response.get("results", []))
+    # Navigate: data.stats[].music
+    data = api_response.get("data", {})
+    stats = data.get("stats", [])
     
-    for item in items:
-        if not isinstance(item, dict):
+    for stat in stats:
+        music = stat.get("music")
+        if not music or not isinstance(music, dict):
             continue
         
+        calc = stat.get("calculations")
+        if not calc or not isinstance(calc, dict):
+            calc = {}
+        
         track = {
-            "title": item.get("title") or item.get("music_title") or item.get("name", "Unknown"),
-            "artist": item.get("author") or item.get("artist") or item.get("author_name", "Unknown"),
-            "play_url": item.get("play_url") or item.get("music_url") or item.get("url", ""),
-            "cover": item.get("cover") or item.get("cover_large") or item.get("thumbnail", ""),
-            "duration": item.get("duration", 0),
-            "likes": item.get("likes") or item.get("digg_count", 0),
-            "plays": item.get("plays") or item.get("play_count", 0),
-            "id": item.get("id") or item.get("music_id", ""),
+            "title": music.get("recognitionTitle") or music.get("title", "Unknown"),
+            "original_title": music.get("title", ""),
+            "artist": music.get("recognitionAuthor") or music.get("creator", "Unknown"),
+            "creator": music.get("creator", ""),
+            "play_url": music.get("url", ""),  # TikTok CDN direct MP3 stream
+            "tiktok_url": music.get("musicUrl", ""),
+            "download_url": music.get("downloadLink", ""),
+            "cover": music.get("cover", ""),
+            "duration": music.get("duration", 0),
+            "likes": calc.get("likes", music.get("reposts", 0)),
+            "plays": calc.get("plays", 0),
+            "position": stat.get("positionInChart", 0),
+            "id": music.get("id", ""),
         }
         
-        # Skip tracks without play URL
+        # Prefer play_url (TikTok CDN), fallback to download_url (Apple preview)
+        if not track["play_url"] and track["download_url"]:
+            track["play_url"] = track["download_url"]
+        
+        # Skip tracks without any playable URL
         if track["play_url"]:
             tracks.append(track)
     
@@ -96,7 +136,7 @@ def main():
         
         # Build output
         output = {
-            "fetched_at": datetime.utcnow().isoformat() + "Z",
+            "fetched_at": datetime.now(timezone.utc).isoformat(),
             "region": "ID",
             "count": len(tracks),
             "tracks": tracks,
