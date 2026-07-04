@@ -1,0 +1,49 @@
+name: 📊 Fetch Trending Music (Daily)
+
+on:
+  schedule:
+    # Run every day at 00:00 UTC (07:00 WIB)
+    - cron: "0 0 * * *"
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 📊 Fetch trending music
+        env:
+          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
+        run: |
+          python3 scripts/fetch_trending_music.py
+
+      - name: 📝 Commit trending data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Check if file changed
+          if git diff --quiet data/trending-music.json 2>/dev/null; then
+            echo "No changes — skipping commit"
+          else
+            git add data/trending-music.json
+            git commit -m "chore: daily trending music update ($(date -u +%Y-%m-%d))"
+            git push
+            echo "✓ Pushed trending music update"
+          fi
+
+      - name: 📦 Upload as artifact (backup)
+        uses: actions/upload-artifact@v4
+        with:
+          name: trending-music-$(date -u +%Y-%m-%d)
+          path: data/trending-music.json
+          retention-days: 90

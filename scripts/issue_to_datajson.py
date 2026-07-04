@@ -22,6 +22,7 @@ def parse_issue_body(body: str) -> dict:
 
     # GitHub issue forms format: ### Field Label\n\nvalue\n\n
     fields = {
+        "trending_music": r"###\s*🔥 Trending TikTok Music.*?\n\n(.+?)(?:\n\n|\Z)",
         "music": r"###\s*🎵 Music URL.*?\n\n(.+?)(?:\n\n|\Z)",
         "screen": r"###\s*📐 Screen Resolution.*?\n\n(.+?)(?:\n\n|\Z)",
         "duration": r"###\s*⏱️ Duration.*?\n\n(.+?)(?:\n\n|\Z)",
@@ -91,6 +92,39 @@ def main():
 
     # Remove internal fields
     render_scale = data.pop("_render_scale", "0.5")
+
+    # Resolve trending music selection
+    trending = data.pop("trending_music", "")
+    if trending and "Tidak pakai" not in trending and "Trending list" not in trending:
+        # User selected a trending track — try to resolve from data/trending-music.json
+        trending_file = Path(__file__).resolve().parent.parent / "data" / "trending-music.json"
+        if trending_file.exists():
+            trending_data = json.loads(trending_file.read_text())
+            # Extract track number from selection (e.g., "1. Song - Artist" → index 0)
+            match = re.match(r"(\d+)", trending.strip())
+            if match:
+                idx = int(match.group(1)) - 1
+                tracks = trending_data.get("tracks", [])
+                if 0 <= idx < len(tracks):
+                    track = tracks[idx]
+                    data["music"] = track["play_url"]
+                    print(f"  [trending] Selected: {track['title']} — {track['artist']}")
+                    # Auto-add text scenes if empty
+                    if "text" not in data or not data["text"]:
+                        data["text"] = [track["title"], track["artist"]]
+                else:
+                    print(f"  [warn] Trending track index {idx} out of range ({len(tracks)} available)")
+            else:
+                # Try matching by title
+                for track in trending_data.get("tracks", []):
+                    if track["title"] in trending:
+                        data["music"] = track["play_url"]
+                        print(f"  [trending] Matched: {track['title']}")
+                        if "text" not in data or not data["text"]:
+                            data["text"] = [track["title"], track["artist"]]
+                        break
+        else:
+            print("  [warn] data/trending-music.json not found — trending selection ignored")
 
     # Validate required fields
     if "music" not in data:

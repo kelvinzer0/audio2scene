@@ -17,36 +17,35 @@ body:
         
         ---
         
+  - type: dropdown
+    id: trending_music
+    attributes:
+      label: 🔥 Trending TikTok Music
+      description: |
+        Pilih dari lagu TikTok trending Indonesia (updated daily by CI).
+        Kalau pilih lagu di sini, TIDAK perlu isi Music URL di bawah.
+      options:
+        - 🚫 Tidak pakai trending — saya punya URL sendiri
+        - 🎵 (Trending list akan muncul setelah CI fetch pertama)
+    validations:
+      required: true
+
   - type: input
     id: music
     attributes:
-      label: 🎵 Music URL (required)
+      label: 🎵 Music URL (skip kalau pilih trending di atas)
       description: |
         URL ke file audio (MP3/WAV/FLAC). 
+        SKIP field ini kalau sudah pilih trending music di atas.
         
-        ⚠️ GitHub issue TIDAK support upload MP3 langsung. Pilih salah satu:
-        
-        **Opsi 1 — Upload ke hosting (recommended):**
-        - [archive.org](https://archive.org) — free, permanent, no login
-        - [file.io](https://file.io) — free, anonymous, link expires after 1 download
-        - Google Drive — set sharing to "Anyone with link"
-        
-        **Opsi 2 — Upload ke GitHub Release:**
-        1. Buka https://github.com/kelvinzer0/audio2scene/releases/new
-        2. Drag MP3 ke "Attach binaries"
-        3. Publish release
-        4. Copy URL: `https://github.com/kelvinzer0/audio2scene/releases/download/v1/song.mp3`
-        
-        **Opsi 3 — Pixabay Music (free):**
-        - Buka https://pixabay.com/music/
-        - Cari lagu → copy direct MP3 URL
-        
-        **Opsi 4 — Upload via PR:**
+        ⚠️ GitHub issue TIDAK support upload MP3 langsung. Opsi:
+        - [archive.org](https://archive.org) — free, permanent
+        - [Pixabay Music](https://pixabay.com/music/) — free, direct MP3 URL
+        - GitHub Release — upload MP3 ke release, copy download URL
         - Fork repo → tambah MP3 ke folder `uploads/` → create PR
-        - CI akan otomatis detect PR dan render video
-      placeholder: "https://archive.org/download/.../song.mp3"
+      placeholder: "https://archive.org/download/.../song.mp3  (atau biarkan kosong kalau pilih trending)"
     validations:
-      required: true
+      required: false
 
   - type: input
     id: screen
