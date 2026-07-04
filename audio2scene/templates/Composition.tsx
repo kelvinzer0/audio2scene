@@ -585,9 +585,20 @@ export const MyComposition: React.FC = () => {
     );
   }
 
+  // Audio fade out: last 3 seconds always fade to 0
+  const fadeOutStartFrame = Math.max(0, Math.round((timeline.duration - 3) * fps));
+  const fadeOutEndFrame = Math.round(timeline.duration * fps);
+
   return (
     <AbsoluteFill style={{ backgroundColor: "#0a0a0f" }}>
-      <Audio src={staticFile("audio.mp3")} />
+      <Audio
+        src={staticFile("audio.mp3")}
+        volume={(frame: number) => {
+          if (frame < fadeOutStartFrame) return 1;
+          if (frame >= fadeOutEndFrame) return 0;
+          return 1 - (frame - fadeOutStartFrame) / (fadeOutEndFrame - fadeOutStartFrame);
+        }}
+      />
 
       <TransitionSeries>
         {timeline.slices.map((slice, i) => {
