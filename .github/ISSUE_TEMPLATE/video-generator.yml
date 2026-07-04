@@ -1,0 +1,144 @@
+name: 🎬 Video Generator
+description: Generate a video from data.json spec — music + text + images + videos
+title: "[VIDEO] <judul video kamu>"
+labels: ["video-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🎬 Auto Video Generator
+        
+        Isi form di bawah untuk generate video otomatis. Video akan dirender oleh CI
+        dan di-upload sebagai artifact (download link di issue comment).
+        
+        **Semua field support URL atau local path.** Untuk file upload, upload ke
+        [Pixabay](https://pixabay.com), [imgur](https://imgur.com), atau hosting
+        lain dan paste URL-nya.
+        
+        ---
+        
+  - type: input
+    id: music
+    attributes:
+      label: 🎵 Music URL (required)
+      description: URL ke file audio (MP3/WAV/FLAC). Upload ke archive.org atau hosting lain.
+      placeholder: "https://archive.org/download/.../song.mp3"
+    validations:
+      required: true
+
+  - type: input
+    id: screen
+    attributes:
+      label: 📐 Screen Resolution
+      description: Format W:H. 1080:1920 = TikTok/Reels (vertical), 1280:720 = YouTube (horizontal), 1080:1080 = Instagram (square)
+      placeholder: "1080:1920"
+    validations:
+      required: true
+
+  - type: input
+    id: duration
+    attributes:
+      label: ⏱️ Duration
+      description: Durasi video. 30 = 30 detik, "2m" = 2 menit, "90s" = 90 detik
+      placeholder: "30s"
+    validations:
+      required: true
+
+  - type: input
+    id: font
+    attributes:
+      label: 🔤 Font (Google Fonts)
+      description: Nama font dari Google Fonts
+      placeholder: "Inter"
+    validations:
+      required: false
+
+  - type: input
+    id: logo
+    attributes:
+      label: 🏢 Logo URL
+      description: URL ke logo (PNG/SVG). Akan animasi di intro scene.
+      placeholder: "https://example.com/logo.png"
+    validations:
+      required: false
+
+  - type: input
+    id: symbol
+    attributes:
+      label: 🔖 Symbol/Favicon URL
+      description: URL ke favicon/icon (PNG/SVG). Watermark di pojok semua scene.
+      placeholder: "https://example.com/favicon.png"
+    validations:
+      required: false
+
+  - type: textarea
+    id: text
+    attributes:
+      label: ✏️ Text Scenes (required)
+      description: |
+        Satu baris = satu scene. Efek typography dipilih otomatis berdasarkan konten.
+        
+        Tips untuk trigger efek spesifik:
+        - Tanya "?" → typewriter effect
+        - Angka saja "2024" → slot machine
+        - 3 kata + 3 titik "Fast. Crisp. Fluid." → spring scale
+        - Kata sambung "for/untuk/dari" → marker highlight
+        - UPPERCASE "HELLO" → RGB glitch
+      placeholder: |
+        My Brand Name
+        Are you ready?
+        2024
+        Fast. Crisp. Fluid.
+        Thanks for watching
+    validations:
+      required: true
+
+  - type: textarea
+    id: videos
+    attributes:
+      label: 🎥 Video URLs (B-roll)
+      description: Satu URL per baris. Video akan alternate dengan images per scene.
+      placeholder: |
+        https://cdn.pixabay.com/video/clip1.mp4
+        https://cdn.pixabay.com/video/clip2.mp4
+    validations:
+      required: false
+
+  - type: textarea
+    id: images
+    attributes:
+      label: 🖼️ Image URLs (background)
+      description: Satu URL per baris. Images akan alternate dengan videos per scene.
+      placeholder: |
+        https://cdn.pixabay.com/photo/bg1.jpg
+        https://cdn.pixabay.com/photo/bg2.jpg
+    validations:
+      required: false
+
+  - type: dropdown
+    id: quality
+    attributes:
+      label: 🎯 Render Quality
+      description: Higher quality = larger file + longer render time
+      options:
+        - Fast (320×180, ~2 min render)
+        - Standard (640×360, ~5 min render)
+        - HQ (1280×720, ~15 min render)
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        
+        ### 📋 What happens next?
+        
+        1. CI akan parse issue ini jadi `data.json`
+        2. Download semua URL (music, videos, images, logo, symbol)
+        3. Analyze music structure (beats, segments, intensity)
+        4. Generate Remotion project dengan 36 typography components
+        5. Render MP4
+        6. Upload artifact + comment download link di issue ini
+        
+        ⏱️ Estimasi waktu: 2-15 menit tergantung quality + duration

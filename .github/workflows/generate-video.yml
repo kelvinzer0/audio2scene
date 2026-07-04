@@ -1,0 +1,161 @@
+name: 🎬 Video Generator
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  generate-video:
+    # Only run on issues with "video-request" label
+    if: contains(github.event.issue.labels.*.name, 'video-request')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      issues: write
+      contents: read
+
+    steps:
+      - name: 📥 Checkout repo
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 📦 Install audio2scene
+        run: |
+          pip install -e .
+          # Install system deps
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: 💬 Comment — started
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: [
+                '🎬 **Video generation started!**',
+                '',
+                '| Step | Status |',
+                '|---|---|',
+                '| Parse issue | ✅ |',
+                '| Install deps | 🔄 in progress... |',
+                '| Download assets | ⏳ |',
+                '| Analyze music | ⏳ |',
+                '| Generate project | ⏳ |',
+                '| Render MP4 | ⏳ |',
+                '',
+                `⏱️ Estimasi: 2-15 menit tergantung quality + duration`,
+                `🔗 [View workflow run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
+              ].join('\n')
+            })
+
+      - name: 📝 Parse issue body → data.json
+        id: parse
+        run: |
+          # Write issue body to file
+          cat > /tmp/issue-body.txt << 'ISSUE_EOF'
+          ${{ github.event.issue.body }}
+          ISSUE_EOF
+
+          # Parse into data.json
+          python3 scripts/issue_to_datajson.py \
+            --issue-body /tmp/issue-body.txt \
+            --output /tmp/data.json
+
+          # Read render scale
+          RENDER_SCALE=$(cat .render-scale)
+          echo "render_scale=$RENDER_SCALE" >> $GITHUB_OUTPUT
+
+          # Show parsed data
+          echo "=== Parsed data.json ==="
+          cat /tmp/data.json
+
+      - name: 🎬 Generate + Render video
+        id: render
+        run: |
+          audio2scene generate-remotion \
+            --input /tmp/data.json \
+            --output ./my-video \
+            --render --scale ${{ steps.parse.outputs.render_scale }}
+        continue-on-error: true
+
+      - name: 📦 Upload MP4 artifact
+        if: steps.render.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: video-${{ github.event.issue.number }}
+          path: ./my-video/out/video.mp4
+          retention-days: 30
+
+      - name: 💬 Comment — success
+        if: steps.render.outcome == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: [
+                '🎬 **Video ready!** ✅',
+                '',
+                '| Step | Status |',
+                '|---|---|',
+                '| Parse issue | ✅ |',
+                '| Install deps | ✅ |',
+                '| Download assets | ✅ |',
+                '| Analyze music | ✅ |',
+                '| Generate project | ✅ |',
+                '| Render MP4 | ✅ |',
+                '',
+                `📦 **Download video:** [artifact](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
+                '',
+                '---',
+                `_Scale: ${{ steps.parse.outputs.render_scale }} | Duration: configurable via data.json_`
+              ].join('\n')
+            })
+
+      - name: 💬 Comment — failed
+        if: steps.render.outcome != 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: [
+                '❌ **Video generation failed!**',
+                '',
+                'Check the [workflow logs](' + context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId + ') for details.',
+                '',
+                'Common issues:',
+                '- Music URL tidak valid / tidak bisa di-download',
+                '- Video/image URL expired atau protected',
+                '- Duration terlalu panjang (coba kurangi ke "30s")',
+                '',
+                'Edit issue ini dan re-open untuk retry, atau buat issue baru.'
+              ].join('\n')
+            })
+
+      - name: 🏷️ Close issue
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.update({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'closed'
+            });
