@@ -2,7 +2,7 @@ name: 🎬 Video Generator
 
 on:
   issues:
-    types: [opened]
+    types: [opened, labeled, reopened]
 
 jobs:
   generate-video:
