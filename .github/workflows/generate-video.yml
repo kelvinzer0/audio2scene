@@ -12,7 +12,8 @@ jobs:
     timeout-minutes: 30
     permissions:
       issues: write
-      contents: read
+      contents: write
+      actions: read
 
     steps:
       - name: 📥 Checkout repo
@@ -26,7 +27,6 @@ jobs:
       - name: 📦 Install audio2scene
         run: |
           pip install -e .
-          # Install system deps
           sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
 
       - name: 🟢 Setup Node.js
@@ -45,80 +45,70 @@ jobs:
               body: [
                 '🎬 **Video generation started!**',
                 '',
-                '| Step | Status |',
-                '|---|---|',
-                '| Parse issue | ✅ |',
-                '| Install deps | 🔄 in progress... |',
-                '| Download assets | ⏳ |',
-                '| Analyze music | ⏳ |',
-                '| Generate project | ⏳ |',
-                '| Render MP4 | ⏳ |',
-                '',
-                `⏱️ Estimasi: 2-15 menit tergantung quality + duration`,
-                `🔗 [View workflow run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
+                '⏱️ Estimasi: 2-10 menit',
+                `🔗 [View progress](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
               ].join('\n')
-            })
+            });
 
       - name: 📝 Parse issue body → data.json
         id: parse
         run: |
-          # Write issue body to file
           cat > /tmp/issue-body.txt << 'ISSUE_EOF'
           ${{ github.event.issue.body }}
           ISSUE_EOF
 
-          # Parse into data.json
           python3 scripts/issue_to_datajson.py \
             --issue-body /tmp/issue-body.txt \
             --output /tmp/data.json
 
-          # Read render scale
           RENDER_SCALE=$(cat .render-scale)
           echo "render_scale=$RENDER_SCALE" >> $GITHUB_OUTPUT
-
-          # Show parsed data
-          echo "=== Parsed data.json ==="
-          cat /tmp/data.json
 
       - name: 🎬 Generate + Render video
         id: render
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "=== Parsed data.json ==="
-          cat /tmp/data.json
-          echo ""
-          echo "=== Render scale: ${{ steps.parse.outputs.render_scale }} ==="
-          echo ""
-
-          # Run generate + render
           audio2scene generate-remotion \
             --input /tmp/data.json \
             --output ./my-video \
             --render --scale ${{ steps.parse.outputs.render_scale }} 2>&1 || {
-              echo "RENDER_EXIT_CODE=$?" >> $GITHUB_ENV
               echo "render_failed=true" >> $GITHUB_OUTPUT
-              echo "=== Render failed — checking output ==="
-              ls -la ./my-video/out/ 2>/dev/null || echo "No output directory"
               exit 0
             }
           echo "render_failed=false" >> $GITHUB_OUTPUT
-          echo "=== Render output ==="
           ls -la ./my-video/out/video.mp4 2>/dev/null || echo "No video.mp4 found"
 
-      - name: 📦 Upload MP4 artifact
+      - name: 📤 Upload MP4 to GitHub Release
+        id: upload
         if: steps.render.outputs.render_failed != 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: video-${{ github.event.issue.number }}
-          path: ./my-video/out/video.mp4
-          retention-days: 30
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="video-issue-${{ github.event.issue.number }}"
+
+          # Create release (or update if exists)
+          gh release create "$TAG" \
+            --title "Video Issue #${{ github.event.issue.number }}" \
+            --notes "Auto-generated video" \
+            --repo ${{ github.repository }} 2>/dev/null || true
+
+          # Upload MP4 as release asset (overwrite if exists)
+          gh release upload "$TAG" ./my-video/out/video.mp4 \
+            --repo ${{ github.repository }} --clobber
+
+          # Direct public download URL
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/video.mp4"
+          echo "download_url=$DOWNLOAD_URL" >> $GITHUB_OUTPUT
+          echo "✓ Video uploaded: $DOWNLOAD_URL"
 
       - name: 💬 Comment — success
         if: steps.render.outputs.render_failed != 'true'
         uses: actions/github-script@v7
         with:
           script: |
+            const downloadUrl = '${{ steps.upload.outputs.download_url }}';
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
@@ -126,21 +116,17 @@ jobs:
               body: [
                 '🎬 **Video ready!** ✅',
                 '',
-                '| Step | Status |',
-                '|---|---|',
-                '| Parse issue | ✅ |',
-                '| Install deps | ✅ |',
-                '| Download assets | ✅ |',
-                '| Analyze music | ✅ |',
-                '| Generate project | ✅ |',
-                '| Render MP4 | ✅ |',
+                '📹 **Download:** [video.mp4](' + downloadUrl + ')',
                 '',
-                `📦 **Download video:** [artifact](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
+                '⬇️ Direct link:',
+                '```',
+                downloadUrl,
+                '```',
                 '',
                 '---',
-                `_Scale: ${{ steps.parse.outputs.render_scale }} | Duration: configurable via data.json_`
+                `_Scale: ${{ steps.parse.outputs.render_scale }} | Issue #${{ github.event.issue.number }}_`
               ].join('\n')
-            })
+            });
 
       - name: 💬 Comment — failed
         if: steps.render.outputs.render_failed == 'true'
@@ -154,16 +140,14 @@ jobs:
               body: [
                 '❌ **Video generation failed!**',
                 '',
-                'Check the [workflow logs](' + context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId + ') for details.',
+                'Check [workflow logs](' + context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId + ')',
                 '',
                 'Common issues:',
-                '- Music URL tidak valid / tidak bisa di-download',
-                '- Video/image URL expired atau protected',
-                '- Duration terlalu panjang (coba kurangi ke "30s")',
-                '',
-                'Edit issue ini dan re-open untuk retry, atau buat issue baru.'
+                '- Music URL tidak valid / expired',
+                '- Duration terlalu panjang (coba "15s")',
+                '- Pilih trending music dari dropdown (URL persistent)'
               ].join('\n')
-            })
+            });
 
       - name: 🏷️ Close issue
         if: always()
