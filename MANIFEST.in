@@ -1,0 +1,4 @@
+include README.md
+include LICENSE
+recursive-include audio2scene/templates *
+recursive-include audio2scene *.py
