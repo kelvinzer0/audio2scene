@@ -12,7 +12,7 @@ body:
         dan di-upload sebagai artifact (download link di issue comment).
         
         **Semua field support URL atau local path.** Untuk file upload, upload ke
-        [Pixabay](https://pixabay.com), [imgur](https://imgur.com), atau hosting
+        [Pixabay](https://pixabay.com), [Unsplash](https://unsplash.com), atau hosting
         lain dan paste URL-nya.
         
         ---
@@ -81,8 +81,15 @@ body:
     id: logo
     attributes:
       label: 🏢 Logo URL
-      description: URL ke logo (PNG/SVG). Akan animasi di intro scene.
-      placeholder: "https://example.com/logo.png"
+      description: |
+        URL ke logo (PNG/SVG). Akan animasi di intro scene.
+        Kalau ada logo, text scene pertama otomatis skip.
+        
+        Sumber logo gratis:
+        - [Unsplash](https://unsplash.com) — search "logo"
+        - [Pixabay](https://pixabay.com/images/search/logo/)
+        - Brand fetcher: `https://logo.clearbit.com/example.com`
+      placeholder: "https://logo.clearbit.com/example.com  (atau https://images.unsplash.com/photo-XXXX.png)"
     validations:
       required: false
 
@@ -90,8 +97,14 @@ body:
     id: symbol
     attributes:
       label: 🔖 Symbol/Favicon URL
-      description: URL ke favicon/icon (PNG/SVG). Watermark di pojok semua scene.
-      placeholder: "https://example.com/favicon.png"
+      description: |
+        URL ke favicon/icon (PNG/SVG). Watermark di pojok semua scene.
+        
+        Sumber icon gratis:
+        - [Favicon.io](https://favicon.io/) — generate dari text/emoji
+        - [IconFinder](https://www.iconfinder.com/search?type=free) — filter "Free"
+        - [Flaticon](https://www.flaticon.com/) — free with attribution
+      placeholder: "https://favicon.io/favicon.ico  (atau https://cdn.example.com/icon.png)"
     validations:
       required: false
 
@@ -121,10 +134,23 @@ body:
     id: videos
     attributes:
       label: 🎥 Video URLs (B-roll)
-      description: Satu URL per baris. Video akan alternate dengan images per scene.
+      description: |
+        Satu URL per baris. Video akan alternate dengan images per scene.
+        Format MP4/WebM/MOV. Boleh biarkan kosong kalau cuma pakai images.
+        
+        **Sumber video gratis (Direct MP4 URL):**
+        - [Pixabay Videos](https://pixabay.com/videos/) → klik video → "Download" → copy URL
+        - [Coverr](https://coverr.co/) → free stock videos, no attribution
+        - [Pexels Videos](https://www.pexels.com/videos/) → free, register to download
+        - [Archive.org](https://archive.org/details/movies) → public domain films
+        
+        **Contoh placeholder yang SUDAH berfungsi (bisa langsung dipakai untuk test):**
       placeholder: |
-        https://cdn.pixabay.com/video/clip1.mp4
-        https://cdn.pixabay.com/video/clip2.mp4
+        # — Contoh URL video yang sudah berfungsi (boleh dipakai langsung) —
+        https://archive.org/download/BigBuckBunny_124/Content/big_buck_bunny_720p_surround.mp4
+        https://www.w3schools.com/html/mov_bbb.mp4
+        # — Setelah ini, ganti/ganti-tambah URL video kamu sendiri —
+        # https://cdn.pixabay.com/video/your-clip.mp4
     validations:
       required: false
 
@@ -132,10 +158,29 @@ body:
     id: images
     attributes:
       label: 🖼️ Image URLs (background)
-      description: Satu URL per baris. Images akan alternate dengan videos per scene.
+      description: |
+        Satu URL per baris. Images akan alternate dengan videos per scene.
+        Format JPG/PNG/WebP. Boleh biarkan kosong kalau cuma pakai videos.
+        
+        **Sumber image gratis (Direct URL):**
+        - [Unsplash](https://unsplash.com) → klik photo → copy URL (atau pakai `?w=1920`)
+        - [Pixabay Images](https://pixabay.com/images/) → klik photo → "Download" → copy URL
+        - [Pexels](https://www.pexels.com/search/photos/) → free, no attribution
+        - [Lorem Picsum](https://picsum.photos/) → random photo, `https://picsum.photos/1920/1080`
+        
+        **Tips portrait (TikTok/Reels 1080×1920):** pakai `?w=1080` di Unsplash
+        untuk dapat resolusi yang pas. Image akan di-blur-fill otomatis biar gak ada
+        black bar di mode portrait.
+        
+        **Contoh placeholder yang SUDAH berfungsi (bisa langsung dipakai untuk test):**
       placeholder: |
-        https://cdn.pixabay.com/photo/bg1.jpg
-        https://cdn.pixabay.com/photo/bg2.jpg
+        # — Contoh URL image yang sudah berfungsi (boleh dipakai langsung) —
+        https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1920
+        https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1920
+        https://images.unsplash.com/photo-1518602164578-cd0074062767?w=1080
+        https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Camponotus_flavomarginatus_ant.jpg/1280px-Camponotus_flavomarginatus_ant.jpg
+        # — Setelah ini, ganti/ganti-tambah URL image kamu sendiri —
+        # https://cdn.pixabay.com/photo/your-bg.jpg
     validations:
       required: false
 
@@ -166,3 +211,14 @@ body:
         6. Upload artifact + comment download link di issue ini
         
         ⏱️ Estimasi waktu: 2-15 menit tergantung quality + duration
+        
+        ---
+        
+        ### 💡 Tips Cepat
+        
+        - **Pakai placeholder yang sudah ada** di kolom `videos` dan `images` kalau
+          cuma mau test render. URLs-nya sudah diverifikasi berfungsi.
+        - **Hapus baris yang diawali `#`** sebelum submit — itu cuma komentar
+          bantuan, parser akan skip baris komentar otomatis.
+        - **Alternating otomatis**: kalau kamu isi 2 video + 3 image, hasilnya
+          akan `video → image → video → image → image` per scene.
