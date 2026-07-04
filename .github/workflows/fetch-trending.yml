@@ -26,19 +26,23 @@ jobs:
         run: |
           python3 scripts/fetch_trending_music.py
 
-      - name: 📝 Commit trending data
+      - name: 📝 Update issue template with trending tracks
+        run: |
+          python3 scripts/update_issue_template.py
+
+      - name: 💾 Commit trending data + updated template
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Check if file changed
-          if git diff --quiet data/trending-music.json 2>/dev/null; then
+          # Check if any file changed
+          if git diff --quiet data/trending-music.json .github/ISSUE_TEMPLATE/video-generator.yml 2>/dev/null; then
             echo "No changes — skipping commit"
           else
-            git add data/trending-music.json
-            git commit -m "chore: daily trending music update ($(date -u +%Y-%m-%d))"
+            git add data/trending-music.json .github/ISSUE_TEMPLATE/video-generator.yml
+            git commit -m "chore: daily trending music update + issue template ($(date -u +%Y-%m-%d))"
             git push
-            echo "✓ Pushed trending music update"
+            echo "✓ Pushed trending music + template update"
           fi
 
       - name: 📦 Upload as artifact (backup)

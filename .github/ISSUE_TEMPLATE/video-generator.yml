@@ -22,11 +22,18 @@ body:
     attributes:
       label: 🔥 Trending TikTok Music
       description: |
-        Pilih dari lagu TikTok trending Indonesia (updated daily by CI).
+        Pilih dari lagu TikTok trending Indonesia (updated: 2026-07-04).
         Kalau pilih lagu di sini, TIDAK perlu isi Music URL di bawah.
       options:
         - 🚫 Tidak pakai trending — saya punya URL sendiri
-        - 🎵 (Trending list akan muncul setelah CI fetch pertama)
+        - 1. Se Fue — El Trono de Mexico (1.4M)
+        - 2. Garam & Madu (Sakit Dadaku) — Tenxi, Jemsii & Naykilla (1.1M)
+        - 3. Don't Get The Wrong Partner — Elissa Heuntet (920K)
+        - 4. APT. — ROSÉ & Bruno Mars (804K)
+        - 5. Demi Cinta Nih Yee… — Hetty Koes Endang (161K)
+        - 6. Tiktok ki duniya  Nr bamaniya  Song — Nr bamaniya Official (83K)
+        - 7. Bahara (From "I Hate Luv Storys") — Shreya Ghoshal, Sona Mohapatra (34K)
+
     validations:
       required: true
 
