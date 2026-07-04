@@ -40,7 +40,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '🎬 **Video generation started!**\n\n⏱️ Estimasi: 2-5 menit\n🔗 [View progress](' + context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId + ')'
+              body: '🎬 **Video generation started!**\n\n⏱️ Estimasi: 2-5 menit'
             });
 
       - name: 📝 Parse issue body → data.json
@@ -64,30 +64,36 @@ jobs:
               exit 0
             }
           echo "render_failed=false" >> $GITHUB_OUTPUT
-          ls -la ./my-video/out/video.mp4 2>&1
+          ls -la ./my-video/out/video.mp4
 
-      - name: 📤 Push MP4 to gh-pages (direct download URL)
+      - name: 📤 Upload MP4 via GitHub Release (gh API, no branch push)
         id: upload
         if: steps.render.outputs.render_failed != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Clone gh-pages, copy MP4, push
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          TAG="video-issue-${{ github.event.issue.number }}"
           
-          git fetch origin gh-pages
-          git checkout gh-pages
-          mkdir -p videos
-          cp ./my-video/out/video.mp4 "videos/issue-${{ github.event.issue.number }}.mp4"
-          git add "videos/issue-${{ github.event.issue.number }}.mp4"
-          git commit -m "video: issue #${{ github.event.issue.number }}"
-          git push origin gh-pages
+          # Create release via gh API (creates lightweight tag, NOT a branch)
+          gh release create "$TAG" \
+            --title "Video Issue #${{ github.event.issue.number }}" \
+            --notes "Auto-generated video" \
+            --repo ${{ github.repository }} 2>/dev/null || \
+          gh release create "$TAG" \
+            --title "Video Issue #${{ github.event.issue.number }}" \
+            --notes "Auto-generated video" \
+            --repo ${{ github.repository }} --target main
           
-          # Direct public URL via GitHub Pages
-          VIDEO_URL="https://kelvinzer0.github.io/audio2scene/videos/issue-${{ github.event.issue.number }}.mp4"
+          # Upload MP4 as release asset
+          gh release upload "$TAG" ./my-video/out/video.mp4 \
+            --repo ${{ github.repository }} --clobber
+          
+          # Direct public download URL
+          VIDEO_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/video.mp4"
           echo "video_url=$VIDEO_URL" >> $GITHUB_OUTPUT
-          echo "✓ Video pushed: $VIDEO_URL"
+          echo "✓ Video uploaded: $VIDEO_URL"
 
-      - name: 💬 Comment — success with video preview
+      - name: 💬 Comment — success
         if: steps.render.outputs.render_failed != 'true' && success()
         uses: actions/github-script@v7
         with:
@@ -103,10 +109,12 @@ jobs:
                 `📹 **Download MP4:** [video.mp4](${videoUrl})`,
                 '',
                 `⬇️ Direct link (klik untuk download/play):`,
-                `${videoUrl}`,
+                '```',
+                videoUrl,
+                '```',
                 '',
                 '---',
-                `_Quality: ${{ steps.parse.outputs.render_scale }} | Issue #${{ github.event.issue.number }}_`
+                `_Issue #${{ github.event.issue.number }}_`
               ].join('\n')
             });
 
