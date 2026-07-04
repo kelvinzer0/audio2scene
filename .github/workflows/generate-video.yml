@@ -6,14 +6,12 @@ on:
 
 jobs:
   generate-video:
-    # Only run on issues with "video-request" label
     if: contains(github.event.issue.labels.*.name, 'video-request')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       issues: write
       contents: write
-      actions: read
 
     steps:
       - name: 📥 Checkout repo
@@ -42,32 +40,21 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: [
-                '🎬 **Video generation started!**',
-                '',
-                '⏱️ Estimasi: 2-10 menit',
-                `🔗 [View progress](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
-              ].join('\n')
+              body: '🎬 **Video generation started!**\n\n⏱️ Estimasi: 2-10 menit\n🔗 [View progress](' + context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId + ')'
             });
 
       - name: 📝 Parse issue body → data.json
         id: parse
         run: |
-          cat > /tmp/issue-body.txt << 'ISSUE_EOF'
-          ${{ github.event.issue.body }}
-          ISSUE_EOF
-
+          printf '%s' '${{ github.event.issue.body }}' > /tmp/issue-body.txt
           python3 scripts/issue_to_datajson.py \
             --issue-body /tmp/issue-body.txt \
             --output /tmp/data.json
-
           RENDER_SCALE=$(cat .render-scale)
           echo "render_scale=$RENDER_SCALE" >> $GITHUB_OUTPUT
 
       - name: 🎬 Generate + Render video
         id: render
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           audio2scene generate-remotion \
             --input /tmp/data.json \
@@ -77,38 +64,38 @@ jobs:
               exit 0
             }
           echo "render_failed=false" >> $GITHUB_OUTPUT
-          ls -la ./my-video/out/video.mp4 2>/dev/null || echo "No video.mp4 found"
 
       - name: 📤 Upload MP4 to GitHub Release
         id: upload
         if: steps.render.outputs.render_failed != 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="video-issue-${{ github.event.issue.number }}"
-
-          # Create release (or update if exists)
+          
+          # Create release
+          gh release create "$TAG" \
+            --title "Video Issue #${{ github.event.issue.number }}" \
+            --notes "Auto-generated video for issue #${{ github.event.issue.number }}" \
+            --repo ${{ github.repository }} 2>/dev/null || \
           gh release create "$TAG" \
             --title "Video Issue #${{ github.event.issue.number }}" \
             --notes "Auto-generated video" \
-            --repo ${{ github.repository }} 2>/dev/null || true
-
-          # Upload MP4 as release asset (overwrite if exists)
+            --repo ${{ github.repository }} --target main
+          
+          # Upload MP4
           gh release upload "$TAG" ./my-video/out/video.mp4 \
             --repo ${{ github.repository }} --clobber
-
-          # Direct public download URL
+          
           DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/video.mp4"
           echo "download_url=$DOWNLOAD_URL" >> $GITHUB_OUTPUT
-          echo "✓ Video uploaded: $DOWNLOAD_URL"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 💬 Comment — success
-        if: steps.render.outputs.render_failed != 'true'
+        if: steps.render.outputs.render_failed != 'true' && success()
         uses: actions/github-script@v7
         with:
           script: |
             const downloadUrl = '${{ steps.upload.outputs.download_url }}';
-
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
@@ -129,7 +116,7 @@ jobs:
             });
 
       - name: 💬 Comment — failed
-        if: steps.render.outputs.render_failed == 'true'
+        if: failure() || steps.render.outputs.render_failed == 'true'
         uses: actions/github-script@v7
         with:
           script: |
@@ -140,12 +127,12 @@ jobs:
               body: [
                 '❌ **Video generation failed!**',
                 '',
-                'Check [workflow logs](' + context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId + ')',
+                'Check [logs](' + context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId + ')',
                 '',
-                'Common issues:',
-                '- Music URL tidak valid / expired',
-                '- Duration terlalu panjang (coba "15s")',
-                '- Pilih trending music dari dropdown (URL persistent)'
+                'Tips:',
+                '- Pilih trending music dari dropdown (URL persistent)',
+                '- Atau pakai URL dari archive.org / pixabay',
+                '- Duration pendek dulu: "15s"'
               ].join('\n')
             });
 
