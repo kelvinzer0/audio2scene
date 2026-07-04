@@ -414,22 +414,10 @@ def map_content_to_timeline(
     all_cuts = sorted(set(filtered_cuts + seg_starts))
 
     # === Decide scene boundaries ===
-    # Strategy: distribute n_texts scenes across total_duration.
-    # Use cut points if we have enough; otherwise split evenly.
-    if len(all_cuts) >= n_texts - 1:
-        # We have enough cut points — pick n_texts-1 of them, evenly spaced in the list
-        # to serve as boundaries between scenes
-        if n_texts == 1:
-            boundaries: List[float] = []
-        else:
-            # Pick n_texts-1 cut points spread across the cut list
-            step = len(all_cuts) / (n_texts - 1) if n_texts > 1 else 0
-            indices = [int(i * step) for i in range(n_texts - 1)]
-            indices = sorted(set(indices))  # dedupe
-            boundaries = [all_cuts[i] for i in indices]
-    else:
-        # Not enough cuts — split timeline evenly
-        boundaries = [total_duration * (i + 1) / n_texts for i in range(n_texts - 1)]
+    # Strategy: ALWAYS split evenly into n_texts scenes.
+    # Audio cut points are used for timing inspiration but text count is authoritative.
+    # This ensures every text entry gets its own scene.
+    boundaries = [total_duration * (i + 1) / n_texts for i in range(n_texts - 1)]
 
     # Build scene start/end list
     scene_starts = [0.0] + boundaries
@@ -442,9 +430,10 @@ def map_content_to_timeline(
 
     for i, (start, end) in enumerate(zip(scene_starts, scene_ends)):
         if end - start < 0.3:
-            continue  # skip too-short scenes
+            continue  # skip too-short scenes — DON'T consume text
+
+        # Assign text AFTER skip check — only non-skipped scenes get text
         text = spec.text[text_idx] if text_idx < n_texts else None
-        # Use text_idx for effect selection (so rule "scene pertama" applies to first TEXT, not first slice)
         effect = pick_typography_by_text(text or "", text_idx)
         if text_idx < n_texts:
             text_idx += 1
@@ -1334,9 +1323,19 @@ def generate_remotion_project(
         dest.parent.mkdir(parents=True, exist_ok=True)
         try:
             if url_or_path.startswith(("http://", "https://")):
-                req = urllib.request.Request(url_or_path, headers={"User-Agent": "Mozilla/5.0"})
-                with urllib.request.urlopen(req, timeout=60) as r:
-                    dest.write_bytes(r.read())
+                # Use opener with redirect handler (GitHub attachments use 302)
+                opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler)
+                req = urllib.request.Request(url_or_path, headers={
+                    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
+                    "Accept": "*/*",
+                    "Accept-Encoding": "identity",
+                })
+                resp = opener.open(req, timeout=120)
+                data = resp.read()
+                if len(data) < 1000:
+                    print(f"  [warn] {dest_name}: downloaded only {len(data)} bytes — likely error page")
+                    return None
+                dest.write_bytes(data)
                 size_kb = dest.stat().st_size / 1024
                 print(f"  [download] {dest_name} ({size_kb:.0f} KB) ← {url_or_path[:60]}...")
                 return dest_name
@@ -1349,8 +1348,12 @@ def generate_remotion_project(
                 else:
                     print(f"  [warn] not found: {local}")
                     return None
+        except urllib.error.HTTPError as e:
+            print(f"  [warn] HTTP {e.code} for {dest_name}: {url_or_path[:60]}...")
+            return None
         except Exception as e:
-            print(f"  [warn] failed to fetch {dest_name}: {e}")
+            err_str = str(e)[:100]
+            print(f"  [warn] failed to fetch {dest_name}: {err_str}")
             return None
 
     # === Videos: download (URL) or copy (local) ===
