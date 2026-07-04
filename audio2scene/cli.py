@@ -188,7 +188,7 @@ def _render_project(project_dir, args) -> int:
     else:
         scale = 0.5
 
-    project_dir = Path(project_dir)
+    project_dir = Path(project_dir).resolve()
     print(f"\n[audio2scene] Installing dependencies in {project_dir}...")
     r = subprocess.run([npm, "install", "--silent"], cwd=str(project_dir))
     if r.returncode != 0:
@@ -199,9 +199,9 @@ def _render_project(project_dir, args) -> int:
     subprocess.run([npm, "install", "--silent", "--save-dev", "@types/culori", "culori"],
                    cwd=str(project_dir))
 
-    # Build output path
-    output_mp4 = str(project_dir / "out" / "video.mp4")
+    # Build output path — MUST be absolute because Remotion runs with cwd=project_dir
     (project_dir / "out").mkdir(exist_ok=True)
+    output_mp4 = str(project_dir / "out" / "video.mp4")
 
     # Build render command
     cmd = [npx, "remotion", "render", "Audio2ScenePreview", output_mp4,
