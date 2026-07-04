@@ -21,7 +21,29 @@ body:
     id: music
     attributes:
       label: 🎵 Music URL (required)
-      description: URL ke file audio (MP3/WAV/FLAC). Upload ke archive.org atau hosting lain.
+      description: |
+        URL ke file audio (MP3/WAV/FLAC). 
+        
+        ⚠️ GitHub issue TIDAK support upload MP3 langsung. Pilih salah satu:
+        
+        **Opsi 1 — Upload ke hosting (recommended):**
+        - [archive.org](https://archive.org) — free, permanent, no login
+        - [file.io](https://file.io) — free, anonymous, link expires after 1 download
+        - Google Drive — set sharing to "Anyone with link"
+        
+        **Opsi 2 — Upload ke GitHub Release:**
+        1. Buka https://github.com/kelvinzer0/audio2scene/releases/new
+        2. Drag MP3 ke "Attach binaries"
+        3. Publish release
+        4. Copy URL: `https://github.com/kelvinzer0/audio2scene/releases/download/v1/song.mp3`
+        
+        **Opsi 3 — Pixabay Music (free):**
+        - Buka https://pixabay.com/music/
+        - Cari lagu → copy direct MP3 URL
+        
+        **Opsi 4 — Upload via PR:**
+        - Fork repo → tambah MP3 ke folder `uploads/` → create PR
+        - CI akan otomatis detect PR dan render video
       placeholder: "https://archive.org/download/.../song.mp3"
     validations:
       required: true

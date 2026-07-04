@@ -1,0 +1,185 @@
+name: 🎬 Video Generator (PR Upload)
+
+# Trigger when PR contains MP3 in uploads/ folder
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - "uploads/**"
+
+jobs:
+  generate-from-upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - name: 📥 Checkout PR
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 📦 Install audio2scene
+        run: |
+          pip install -e .
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: 💬 Comment — started
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🎬 **Video generation started from PR upload!**\n\nRendering video from `uploads/` folder...'
+            });
+
+      - name: 🔍 Find uploaded files
+        id: files
+        run: |
+          echo "=== Files in uploads/ ==="
+          find uploads/ -type f 2>/dev/null || echo "No uploads/ folder"
+          
+          # Find MP3
+          MP3=$(find uploads/ -name "*.mp3" -o -name "*.wav" -o -name "*.flac" -o -name "*.ogg" -o -name "*.m4a" 2>/dev/null | head -1)
+          echo "music=$MP3" >> $GITHUB_OUTPUT
+          
+          # Find images
+          IMAGES=$(find uploads/ -name "*.jpg" -o -name "*.png" -o -name "*.jpeg" -o -name "*.webp" 2>/dev/null | head -10)
+          if [ -n "$IMAGES" ]; then
+            # Convert to JSON array
+            IMAGES_JSON=$(echo "$IMAGES" | python3 -c "import sys,json; print(json.dumps([l.strip() for l in sys.stdin if l.strip()]))")
+            echo "images=$IMAGES_JSON" >> $GITHUB_OUTPUT
+          fi
+          
+          # Find videos
+          VIDEOS=$(find uploads/ -name "*.mp4" -o -name "*.webm" -o -name "*.mov" 2>/dev/null | head -10)
+          if [ -n "$VIDEOS" ]; then
+            VIDEOS_JSON=$(echo "$VIDEOS" | python3 -c "import sys,json; print(json.dumps([l.strip() for l in sys.stdin if l.strip()]))")
+            echo "videos=$VIDEOS_JSON" >> $GITHUB_OUTPUT
+          fi
+          
+          # Find logo
+          LOGO=$(find uploads/ -name "logo*" 2>/dev/null | head -1)
+          echo "logo=$LOGO" >> $GITHUB_OUTPUT
+          
+          # Find symbol
+          SYMBOL=$(find uploads/ -name "symbol*" -o -name "favicon*" 2>/dev/null | head -1)
+          echo "symbol=$SYMBOL" >> $GITHUB_OUTPUT
+          
+          # Find data.json
+          DATAJSON=$(find uploads/ -name "data.json" 2>/dev/null | head -1)
+          echo "datajson=$DATAJSON" >> $GITHUB_OUTPUT
+          
+          echo ""
+          echo "=== Detected files ==="
+          echo "Music: $MP3"
+          echo "Images: $IMAGES"
+          echo "Videos: $VIDEOS"
+          echo "Logo: $LOGO"
+          echo "Symbol: $SYMBOL"
+          echo "data.json: $DATAJSON"
+
+      - name: 📝 Build data.json from uploads
+        run: |
+          # If data.json exists in uploads/, use it
+          if [ -n "${{ steps.files.outputs.datajson }}" ]; then
+            cp "${{ steps.files.outputs.datajson }}" /tmp/data.json
+            echo "Using data.json from uploads/"
+          else
+            # Build data.json from detected files
+            python3 -c "
+          import json
+          data = {
+              'music': '${{ steps.files.outputs.music }}',
+              'screen': '1080:1920',
+              'duration': '30s',
+              'font': 'Inter',
+              'text': ['My Video', 'Thanks for watching'],
+          }
+          logo = '${{ steps.files.outputs.logo }}'
+          symbol = '${{ steps.files.outputs.symbol }}'
+          if logo: data['logo'] = logo
+          if symbol: data['symbol'] = symbol
+          images = '${{ steps.files.outputs.images }}'
+          videos = '${{ steps.files.outputs.videos }}'
+          if images and images != '[]': data['images'] = json.loads(images)
+          if videos and videos != '[]': data['videos'] = json.loads(videos)
+          with open('/tmp/data.json', 'w') as f:
+              json.dump(data, f, indent=2)
+          print(json.dumps(data, indent=2))
+            "
+          fi
+          
+          echo ""
+          echo "=== Final data.json ==="
+          cat /tmp/data.json
+
+      - name: 🎬 Generate + Render
+        id: render
+        run: |
+          audio2scene generate-remotion \
+            --input /tmp/data.json \
+            --output ./my-video \
+            --render --scale 0.5 2>&1 || {
+              echo "render_failed=true" >> $GITHUB_OUTPUT
+              exit 0
+            }
+          echo "render_failed=false" >> $GITHUB_OUTPUT
+          ls -la ./my-video/out/video.mp4 2>/dev/null
+
+      - name: 📦 Upload artifact
+        if: steps.render.outputs.render_failed != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: video-pr-${{ github.event.pull_request.number }}
+          path: ./my-video/out/video.mp4
+          retention-days: 30
+
+      - name: 💬 Comment — result
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const failed = '${{ steps.render.outputs.render_failed }}' === 'true';
+            if (failed) {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: [
+                  '❌ **Video generation failed!**',
+                  '',
+                  'Pastikan ada file MP3 di folder `uploads/`.',
+                  'Atau buat `uploads/data.json` dengan konfigurasi lengkap.',
+                  '',
+                  `[View logs](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
+                ].join('\n')
+              });
+            } else {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: [
+                  '🎬 **Video ready!** ✅',
+                  '',
+                  `📦 [Download video](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
+                  '',
+                  '---',
+                  '_Artifact tersedia 30 hari. Download sebelum expired._'
+                ].join('\n')
+              });
+            }
