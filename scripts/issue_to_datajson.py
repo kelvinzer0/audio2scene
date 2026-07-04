@@ -100,15 +100,24 @@ def main():
         trending_file = Path(__file__).resolve().parent.parent / "data" / "trending-music.json"
         if trending_file.exists():
             trending_data = json.loads(trending_file.read_text())
+            tracks = trending_data.get("tracks", [])
+            
+            # Sanity check: warn if trending-music.json has duplicate URLs (broken cache)
+            urls = [t.get("play_url", "") for t in tracks]
+            if len(urls) != len(set(urls)):
+                dup_count = len(urls) - len(set(urls))
+                print(f"  [WARN] {dup_count} duplicate play_url in trending-music.json — "
+                      f"CI will refresh via iTunes Search API on next daily fetch")
+            
             # Extract track number from selection (e.g., "1. Song - Artist" → index 0)
             match = re.match(r"(\d+)", trending.strip())
             if match:
                 idx = int(match.group(1)) - 1
-                tracks = trending_data.get("tracks", [])
                 if 0 <= idx < len(tracks):
                     track = tracks[idx]
                     data["music"] = track["play_url"]
                     print(f"  [trending] Selected: {track['title']} — {track['artist']}")
+                    print(f"  [trending] URL: {track['play_url']}")
                     # Auto-add text scenes if empty
                     if "text" not in data or not data["text"]:
                         data["text"] = [track["title"], track["artist"]]
@@ -116,10 +125,11 @@ def main():
                     print(f"  [warn] Trending track index {idx} out of range ({len(tracks)} available)")
             else:
                 # Try matching by title
-                for track in trending_data.get("tracks", []):
+                for track in tracks:
                     if track["title"] in trending:
                         data["music"] = track["play_url"]
                         print(f"  [trending] Matched: {track['title']}")
+                        print(f"  [trending] URL: {track['play_url']}")
                         if "text" not in data or not data["text"]:
                             data["text"] = [track["title"], track["artist"]]
                         break

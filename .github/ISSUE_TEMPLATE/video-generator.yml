@@ -29,6 +29,13 @@ body:
         - 1. Se Fue — El Trono de Mexico (1.4M)
         - 2. Garam & Madu (Sakit Dadaku) — Tenxi, Jemsii & Naykilla (1.1M)
         - 3. APT. — ROSÉ & Bruno Mars (804K)
+        - 4. Die With A Smile — Lady Gaga & Bruno Mars (720K)
+        - 5. Espresso — Sabrina Carpenter (680K)
+        - 6. BIRDS OF A FEATHER — Billie Eilish (540K)
+        - 7. Gala bunga matahari — Sal Priadi (410K)
+        - 8. Sial — Mahalini (470K)
+        - 9. Sang Dewi — Lyodra & Andi Rianto (380K)
+        - 10. Cinta Luar Biasa — Andmesh (350K)
 
     validations:
       required: true

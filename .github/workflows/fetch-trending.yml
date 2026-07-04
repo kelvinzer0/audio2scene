@@ -20,11 +20,25 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: 📊 Fetch trending music
+      - name: 📊 Fetch trending music (RapidAPI preferred, iTunes fallback)
         env:
           RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
         run: |
-          python3 scripts/fetch_trending_music.py
+          set -e
+          # Try RapidAPI first (full TikTok trending metadata)
+          if python3 scripts/fetch_trending_music.py; then
+            TRACKS=$(python3 -c "import json; d=json.load(open('data/trending-music.json')); print(d.get('count', 0))")
+            UNIQUE=$(python3 -c "import json; d=json.load(open('data/trending-music.json')); urls=[t['play_url'] for t in d.get('tracks',[])]; print(len(set(urls)) == len(urls))")
+            echo "RapidAPI returned $TRACKS tracks, all unique: $UNIQUE"
+            # If 0 tracks or duplicate URLs (broken cache), fall back to iTunes
+            if [ "$TRACKS" = "0" ] || [ "$UNIQUE" = "False" ]; then
+              echo "⚠️ RapidAPI returned 0 tracks or duplicate URLs — falling back to iTunes Search API"
+              python3 scripts/refresh_trending_via_itunes.py
+            fi
+          else
+            echo "⚠️ RapidAPI quota exceeded or failed — falling back to iTunes Search API"
+            python3 scripts/refresh_trending_via_itunes.py
+          fi
 
       - name: 📝 Update issue template with trending tracks
         run: |
