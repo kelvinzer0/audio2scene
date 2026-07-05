@@ -264,17 +264,18 @@ def pick_typography_by_text(text: str, scene_index: int) -> str:
     Priority order (first match wins):
       1. Scene pertama (index 0) → Inline Highlight (wajib)
       2. Mengandung tanda tanya '?' → Typewriter
-      3. Angka only (pure digits) → Slot Machine Roll
-      4. Angka dengan koma/titik (',.' atau '.') → Number Wheel
-      5. Angka dengan space (e.g. "1 2 3") → Rolling Number
-      6. Mengandung kata tech (hack/decrypt/encrypt) → Matrix Decode
-      7. Single word UPPERCASE → RGB Glitch Text
-      8. Mengandung kata sambung (for/untuk/dari/oleh/adalah) → Marker Highlight
-      9. 3 words + 3 periods (e.g. "Fast. Crisp. Fluid.") → Spring Scale In
-     10. 2 kalimat (2+ periods/sentences) → Mask Reveal Up
-     11. Mengandung '-' atau '·' (dot separator) → Infinite Marquee
-     12. Single word → Shimmer Sweep
-     13. Random fallback dari _RANDOM_POOL
+      3. Time/jam pattern (HH.MM-HH.MM or HH:MM-HH:MM) → Typewriter
+      4. Angka only (pure digits) → Slot Machine Roll
+      5. Angka dengan koma/titik (',.' atau '.') → Number Wheel
+      6. Angka dengan space (e.g. "1 2 3") → Rolling Number
+      7. Mengandung kata tech (hack/decrypt/encrypt) → Matrix Decode
+      8. Single word UPPERCASE → RGB Glitch Text
+      9. Mengandung kata sambung (for/untuk/dari/oleh/adalah) → Marker Highlight
+     10. 3 words + 3 periods (e.g. "Fast. Crisp. Fluid.") → Spring Scale In
+     11. 2 kalimat (2+ periods/sentences) → Mask Reveal Up
+     12. Mengandung '-' atau '·' (dot separator) → Infinite Marquee
+     13. Single word → Shimmer Sweep
+     14. Random fallback dari _RANDOM_POOL
     """
     if not text or not text.strip():
         return "soft-blur-in"
@@ -292,7 +293,26 @@ def pick_typography_by_text(text: str, scene_index: int) -> str:
     if "?" in text_stripped:
         return "typewriter"
 
-    # Rule 3-5: Angka-based rules
+    # Rule 3: Time/jam pattern → Typewriter (text diketik, bukan odometer angka)
+    # Matches ONLY when there's clear time context:
+    #   - Two times separated by dash/s/d/sampai (e.g. "09.00 - 21.00")
+    #   - Time with AM/PM marker (e.g. "9 AM - 5 PM")
+    # Does NOT match standalone decimals like "3.14" or "99.99" (those are
+    # legitimate numbers that should trigger number-wheel).
+    # Why Typewriter: time adalah info text (jam buka), bukan angka acak.
+    # Number-wheel/rolling-number akan munculin odometer random yang misleading.
+    _TIME_RANGE_PATTERN = (
+        # Two HH.MM/HH:MM times separated by dash, s/d, or "sampai"
+        r"\b\d{1,2}[:.]\d{2}\b"
+        r"\s*(?:[-–—]|s/d|sampai)\s*"
+        r"\b\d{1,2}[:.]\d{2}\b"
+    )
+    _TIME_AMPM_PATTERN = r"\b\d{1,2}\s*[AP]M\b"
+    if _re.search(_TIME_RANGE_PATTERN, text_stripped, _re.IGNORECASE) or \
+       _re.search(_TIME_AMPM_PATTERN, text_stripped, _re.IGNORECASE):
+        return "typewriter"
+
+    # Rule 4-6: Angka-based rules (HANYA jika bukan time pattern)
     # Pure digits (e.g. "2024", "100")
     if _re.fullmatch(r"[\d\s]+", text_stripped) and text_stripped.replace(" ", "").isdigit():
         if " " in text_stripped:
