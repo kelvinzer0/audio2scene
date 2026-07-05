@@ -3,14 +3,15 @@ import {
   AbsoluteFill,
   Audio,
   Img,
+  Video,
   interpolate,
   staticFile,
   useCurrentFrame,
   useVideoConfig,
   Easing,
   random,
+  OffthreadVideo,
 } from "remotion";
-import { Video } from "@remotion/media";
 import { TransitionSeries, linearTiming } from "@remotion/transitions";
 import type { TransitionPresentation } from "@remotion/transitions";
 import type { TransitionPresentationComponentProps } from "@remotion/transitions";
@@ -296,78 +297,52 @@ const KEN_BURNS_PATTERNS = [
 ];
 
 /**
- * BlurFill wrapper — eliminates black spots in portrait mode.
- * Renders the media TWICE:
- *   1. Background layer: scaled to fill entire frame + heavy blur (covers gaps)
- *   2. Foreground layer: objectFit cover (the actual visible media)
- * This ensures NO black bars even when source aspect ratio differs from output.
+ * CoverFill — pure objectFit: cover with explicit pixel dimensions.
+ * Uses useVideoConfig to get the composition dimensions, then sizes the media
+ * to 120% of those dimensions in PIXELS (not percentages) to avoid any
+ * percentage-resolution issues with TransitionSeries/transform.
  */
-const BlurFillVideo: React.FC<{ src: string; scale?: string }> = ({ src, scale = "1.1" }) => {
+const CoverFillVideo: React.FC<{ src: string }> = ({ src }) => {
+  const { width, height } = useVideoConfig();
+  const w = width * 1.2;
+  const h = height * 1.2;
+  const x = -width * 0.1;
+  const y = -height * 0.1;
   return (
-    <>
-      {/* Blurred background fill — covers any black gaps */}
-      <Video
-        src={src}
-        style={{
-          position: "absolute",
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          scale: "1.5",
-          transform: "scale(1.5)",
-          filter: "blur(40px) brightness(0.4)",
-          zIndex: 0,
-        }}
-        muted
-        loop
-      />
-      {/* Foreground — actual visible video */}
-      <Video
-        src={src}
-        style={{
-          position: "absolute",
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          scale,
-          zIndex: 1,
-        }}
-        muted
-        loop
-      />
-    </>
+    <Video
+      src={src}
+      style={{
+        position: "absolute",
+        width: w,
+        height: h,
+        top: y,
+        left: x,
+        objectFit: "cover",
+      }}
+      muted
+      loop
+    />
   );
 };
 
-const BlurFillImage: React.FC<{ src: string; transform?: string }> = ({ src, transform }) => {
+const CoverFillImage: React.FC<{ src: string }> = ({ src }) => {
+  const { width, height } = useVideoConfig();
+  const w = width * 1.2;
+  const h = height * 1.2;
+  const x = -width * 0.1;
+  const y = -height * 0.1;
   return (
-    <>
-      {/* Blurred background fill */}
-      <Img
-        src={src}
-        style={{
-          position: "absolute",
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          transform: "scale(1.5)",
-          filter: "blur(40px) brightness(0.4)",
-          zIndex: 0,
-        }}
-      />
-      {/* Foreground */}
-      <Img
-        src={src}
-        style={{
-          position: "absolute",
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          transform: transform || "scale(1.15)",
-          zIndex: 1,
-        }}
-      />
-    </>
+    <Img
+      src={src}
+      style={{
+        position: "absolute",
+        width: w,
+        height: h,
+        top: y,
+        left: x,
+        objectFit: "cover",
+      }}
+    />
   );
 };
 
@@ -378,10 +353,14 @@ const Background: React.FC<{ slice: SceneSlice; sceneIndex?: number }> = ({ slic
   // Alternate: even scenes → video, odd scenes → image (if both available)
   const useVideo = sceneIndex % 2 === 0;
 
+  // Ken Burns animation values (for gradient overlay rotation only, NOT applied to media)
+  const sliceDuration = slice.end - slice.start;
+  const progress = (frame / fps) / Math.max(0.1, sliceDuration);
+
   if (slice.video && useVideo) {
     return (
       <AbsoluteFill style={{ overflow: "hidden" }}>
-        <BlurFillVideo src={staticFile(`videos/${slice.video}`)} scale="1.1" />
+        <CoverFillVideo src={staticFile(`videos/${slice.video}`)} />
         {/* Dark overlay for text contrast — zIndex:1 so it sits BELOW text (zIndex:5 in Scene) */}
         <AbsoluteFill style={{ backgroundColor: "rgba(0,0,0,0.55)", zIndex: 1 }} />
       </AbsoluteFill>
@@ -389,20 +368,11 @@ const Background: React.FC<{ slice: SceneSlice; sceneIndex?: number }> = ({ slic
   }
 
   if (slice.image) {
-    // Enhanced Ken Burns: pick pattern based on scene index
-    const sliceDuration = slice.end - slice.start;
-    const progress = (frame / fps) / Math.max(0.1, sliceDuration);
-    const patternIdx = sceneIndex % KEN_BURNS_PATTERNS.length;
-    const anim = KEN_BURNS_PATTERNS[patternIdx](progress);
     return (
       <AbsoluteFill style={{ overflow: "hidden" }}>
-        <BlurFillImage
-          src={staticFile(`images/${slice.image}`)}
-          transform={`scale(${anim.scale}) translate(${anim.x}px, ${anim.y}px)`}
-        />
+        <CoverFillImage src={staticFile(`images/${slice.image}`)} />
         {/* Subtle parallax glow overlay for "alive" feel.
-            zIndex:1 (NOT 2) so it sits BELOW text (zIndex:5 in Scene).
-            Previously zIndex:2 was covering the text overlay! */}
+            zIndex:1 (NOT 2) so it sits BELOW text (zIndex:5 in Scene). */}
         <AbsoluteFill
           style={{
             zIndex: 1,
@@ -417,7 +387,7 @@ const Background: React.FC<{ slice: SceneSlice; sceneIndex?: number }> = ({ slic
   if (slice.video) {
     return (
       <AbsoluteFill style={{ overflow: "hidden" }}>
-        <BlurFillVideo src={staticFile(`videos/${slice.video}`)} scale="1.1" />
+        <CoverFillVideo src={staticFile(`videos/${slice.video}`)} />
         <AbsoluteFill style={{ backgroundColor: "rgba(0,0,0,0.55)", zIndex: 1 }} />
       </AbsoluteFill>
     );
@@ -563,9 +533,39 @@ const Scene: React.FC<{ slice: SceneSlice; timeline: Timeline; sceneIndex?: numb
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
+  // Determine which media to use: even scenes → video, odd scenes → image
+  const useVideo = sceneIndex % 2 === 0;
+  const videoSrc = slice.video && useVideo ? slice.video : (slice.image ? null : slice.video);
+  const imageSrc = slice.image && !useVideo ? slice.image : null;
+
   return (
-    <AbsoluteFill style={{ backgroundColor: "#0a0a0f" }}>
-      <Background slice={slice} sceneIndex={sceneIndex} />
+    <AbsoluteFill style={{ backgroundColor: "#0a0a0f", overflow: "hidden" }}>
+      {/* Media background — direct render, no wrapper, pure objectFit: cover */}
+      {videoSrc && (
+        <OffthreadVideo
+          src={staticFile(`videos/${videoSrc}`)}
+          style={{
+            position: "absolute",
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+          }}
+          muted
+        />
+      )}
+      {imageSrc && (
+        <AbsoluteFill
+          style={{
+            backgroundImage: `url(${staticFile(`images/${imageSrc}`)})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+          }}
+        />
+      )}
+
+      {/* Dark overlay for text contrast */}
+      <AbsoluteFill style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1 }} />
 
       {slice.text && (
         <AbsoluteFill
@@ -575,11 +575,7 @@ const Scene: React.FC<{ slice: SceneSlice; timeline: Timeline; sceneIndex?: numb
             justifyContent: "center",
             opacity: fadeOut,
             pointerEvents: "none",
-            // CRITICAL: zIndex:5 ensures text sits ABOVE background overlays
-            // (Background image gradient has zIndex:1, video dark overlay has zIndex:1)
-            // Without this, text gets covered by the overlay and becomes invisible!
             zIndex: 5,
-            // Overflow protection: constrain typography to viewport with breathing room
             padding: "0 6%",
             boxSizing: "border-box",
           }}
@@ -589,11 +585,8 @@ const Scene: React.FC<{ slice: SceneSlice; timeline: Timeline; sceneIndex?: numb
               fontFamily,
               maxWidth: "100%",
               textAlign: "center",
-              // Allow long words to break (prevents horizontal overflow on long tokens)
               wordBreak: "break-word",
               overflowWrap: "break-word",
-              // Text shadow for guaranteed contrast against any background
-              textShadow: "0 2px 16px rgba(0,0,0,0.8), 0 0 30px rgba(0,0,0,0.6)",
             }}
           >
             {renderTypography(slice.effect, slice.text, fontFamily)}
