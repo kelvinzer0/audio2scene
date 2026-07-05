@@ -284,16 +284,19 @@ function getTransition(name: string): TransitionPresentation<Record<string, unkn
 // ─── Background renderer (video / image / gradient) ─────────────────────────
 
 // ─── Enhanced Ken Burns image animation (4 patterns) ────────────────────────
+// Patterns use percentage-based pan (0-1 range) for consistent visual effect
+// across any resolution. Scale starts at 1.1 (slight zoom above cover) to
+// ensure full coverage while panning.
 
 const KEN_BURNS_PATTERNS = [
-  // Pattern 0: Zoom in + pan right
-  (p: number) => ({ scale: 1.15 + p * 0.2, x: p * 40 - 20, y: 0 }),
-  // Pattern 1: Zoom out + pan left
-  (p: number) => ({ scale: 1.4 - p * 0.2, x: -(p * 40 - 20), y: 0 }),
-  // Pattern 2: Zoom in + pan up
-  (p: number) => ({ scale: 1.15 + p * 0.2, x: 0, y: -(p * 30 - 15) }),
-  // Pattern 3: Zoom in + diagonal pan
-  (p: number) => ({ scale: 1.2 + p * 0.15, x: p * 30 - 15, y: p * 20 - 10 }),
+  // Pattern 0: Zoom in + pan right (1.10 → 1.35, pan 0% → 12%)
+  (p: number) => ({ scale: 1.10 + p * 0.25, panX: p * 12, panY: 0 }),
+  // Pattern 1: Zoom out + pan left (1.35 → 1.10, pan 12% → 0%)
+  (p: number) => ({ scale: 1.35 - p * 0.25, panX: (1 - p) * 12, panY: 0 }),
+  // Pattern 2: Zoom in + pan up (1.10 → 1.30, pan 0% → 10%)
+  (p: number) => ({ scale: 1.10 + p * 0.20, panX: 0, panY: p * 10 }),
+  // Pattern 3: Zoom in + diagonal pan (1.15 → 1.35, pan 0% → 8% both axes)
+  (p: number) => ({ scale: 1.15 + p * 0.20, panX: p * 8, panY: p * 8 }),
 ];
 
 /**
@@ -525,6 +528,29 @@ const Scene: React.FC<{ slice: SceneSlice; timeline: Timeline; sceneIndex?: numb
   // Font family — use loaded Google Font
   const fontFamily = LOADED_FONT || "system-ui, sans-serif";
 
+  // ─── Ken Burns animation for images (makes them look "alive") ────────────
+  // 4 patterns, alternating per scene. Applied to image via CSS background
+  // properties (backgroundSize + backgroundPosition) so it stays in cover mode
+  // while slowly panning/zooming.
+  const useVideo = sceneIndex % 2 === 0;
+  const videoSrc = slice.video && useVideo ? slice.video : (slice.image ? null : slice.video);
+  const imageSrc = slice.image && !useVideo ? slice.image : null;
+
+  // Compute Ken Burns progress (0 → 1) across scene duration
+  const kenBurnsProgress = Math.min(1, Math.max(0, (frame / fps) / Math.max(0.1, sliceDuration)));
+  const kenBurnsPatternIdx = sceneIndex % KEN_BURNS_PATTERNS.length;
+  const kenBurnsAnim = KEN_BURNS_PATTERNS[kenBurnsPatternIdx](kenBurnsProgress);
+
+  // Map Ken Burns (scale, panX, panY) → CSS background properties:
+  //   backgroundSize: scale * 100% (e.g. 110% to 135% — always > 100% for cover)
+  //   backgroundPosition: panX/panY are direct % offsets (0% = left/top, 50% = center)
+  //     We start at center (50%) and shift by panX/panY directly.
+  const bgScalePercent = kenBurnsAnim.scale * 100;
+  // panX=0 → 50% (center), panX=12 → 50%+12% = 62% (shifted right)
+  // panY=0 → 50% (center), panY=10 → 50%+10% = 60% (shifted down)
+  const bgPosX = 50 + kenBurnsAnim.panX;
+  const bgPosY = 50 + kenBurnsAnim.panY;
+
   // Fade out near end of slice (last 10 frames)
   const fadeOut = interpolate(
     frame,
@@ -534,19 +560,20 @@ const Scene: React.FC<{ slice: SceneSlice; timeline: Timeline; sceneIndex?: numb
   );
 
   // Determine which media to use: even scenes → video, odd scenes → image
-  const useVideo = sceneIndex % 2 === 0;
-  const videoSrc = slice.video && useVideo ? slice.video : (slice.image ? null : slice.video);
-  const imageSrc = slice.image && !useVideo ? slice.image : null;
+  // (useVideo, videoSrc, imageSrc already computed above for Ken Burns)
 
   return (
     <AbsoluteFill
       style={{
         backgroundColor: "#0a0a0f",
         overflow: "hidden",
-        // Image as CSS background-image (synchronous, no async loading issues)
+        // Image as CSS background-image with Ken Burns animation:
+        //   backgroundSize: animated scale (110% → 140%) = zoom in/out
+        //   backgroundPosition: animated X/Y (40% → 60%) = pan
+        //   "auto {scale}%" keeps aspect ratio + zooms; needs explicit both axes
         backgroundImage: imageSrc ? `url(${staticFile(`images/${imageSrc}`)})` : undefined,
-        backgroundSize: "cover",
-        backgroundPosition: "50% 50%",
+        backgroundSize: `${bgScalePercent}% ${bgScalePercent}%`,
+        backgroundPosition: `${bgPosX}% ${bgPosY}%`,
         backgroundRepeat: "no-repeat",
       }}
     >
