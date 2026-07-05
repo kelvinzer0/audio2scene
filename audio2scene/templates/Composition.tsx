@@ -141,38 +141,42 @@ const BeatSyncedEffects: React.FC<{ timeline: Timeline; zIndex?: number; globalT
   // Skip if no beat data
   if (!timeline.beats && !timeline.strong_onsets) return null;
 
-  // ─── KICK: shake + zoom punch on every beat (1-2 frame decay) ─────────
-  const kickWindow = 0.12; // 120ms decay (longer = more visible)
+  // ─── DESIGN PHILOSOPHY ──────────────────────────────────────────────────
+  // Effects should be SUBTLE and INTENTIONAL — viewer feels the beat
+  // subconsciously, not get blinded by flashing. Two clearly distinct effects:
+  //
+  //   KICK (every beat)   = subtle zoom punch (feel it, barely see it)
+  //   SNARE (strong hits) = small flash + tiny RGB split (visible but not jarring)
+  //
+  // Regular onsets do NOT trigger any effect (too frequent = annoying).
+  // Only STRONG onsets (drop/snare hits) trigger the snare effect.
+
+  // ─── KICK: subtle zoom punch only (NO shake — too distracting) ─────────
+  const kickWindow = 0.06; // 60ms decay (1-2 frames at 30fps — very short)
   const kickDt = _recentEvent(timeline.beats, timeSec, kickWindow);
   const kickIntensity = kickDt === Infinity
     ? 0
-    : Math.max(0, 1 - kickDt / kickWindow); // 1.0 → 0 over 120ms
-  // Shake: random offset up to 15px at peak (stronger), decays
-  const shakeX = kickIntensity > 0 ? (Math.sin(frame * 91.7) * 15 * kickIntensity) : 0;
-  const shakeY = kickIntensity > 0 ? (Math.cos(frame * 73.3) * 12 * kickIntensity) : 0;
-  // Zoom: punch 1.0 → 1.06 over 1 frame, then back (stronger)
-  const zoomPunch = 1 + kickIntensity * 0.06;
+    : Math.max(0, 1 - kickDt / kickWindow);
+  // Zoom: 1.0 → 1.015 (1.5% punch — barely perceptible but adds energy)
+  const zoomPunch = 1 + kickIntensity * 0.015;
 
-  // ─── SNARE/ONSET: white flash + RGB split on ALL onsets (scaled by strength) ─
-  // Use all onsets (not just strong_onsets which may be too few for some songs).
-  // Effect magnitude scales with onset strength.
-  const snareWindow = 0.15; // 150ms decay
-  const snareDt = _recentEvent(timeline.onsets, timeSec, snareWindow);
-  const snareBaseIntensity = snareDt === Infinity
+  // ─── SNARE: subtle flash + RGB split ONLY on strong onsets ─────────────
+  // NOT every onset — only strong_onsets (drop/snare hits). This makes the
+  // effect rare and intentional, not constant flashing.
+  const snareWindow = 0.08; // 80ms decay (2-3 frames)
+  const snareDt = _recentEvent(timeline.strong_onsets, timeSec, snareWindow);
+  const snareIntensity = snareDt === Infinity
     ? 0
     : Math.max(0, 1 - snareDt / snareWindow);
-  // Boost intensity for strong onsets (drop/snare hits) for more dramatic effect
-  const isStrongHit = _recentEvent(timeline.strong_onsets, timeSec, snareWindow) !== Infinity;
-  const snareIntensity = snareBaseIntensity * (isStrongHit ? 1.0 : 0.6);
-  // White flash opacity — strong hit: 0.85, normal onset: 0.5
-  const flashOpacity = snareIntensity * (isStrongHit ? 0.85 : 0.5);
-  // RGB split offset — strong hit: 20px, normal onset: 8px
-  const rgbSplit = snareIntensity * (isStrongHit ? 20 : 8);
+  // Flash: opacity 0.18 (subtle — was 0.85, way too bright)
+  const flashOpacity = snareIntensity * 0.18;
+  // RGB split: 4px (was 20px — too extreme)
+  const rgbSplit = snareIntensity * 4;
 
-  // ─── VIGNETTE: flickering dark vignette synced to beat intensity ──────
-  // Vignette is always present but pulses darker on beats
-  const vignetteBase = 0.20;
-  const vignettePulse = kickIntensity * 0.50; // up to 0.50 extra darkness on kick
+  // ─── VIGNETTE: barely visible base, subtle pulse on kick ───────────────
+  // Base 0.08 (was 0.20 — too dark). Pulse 0.10 (was 0.50 — too flickery).
+  const vignetteBase = 0.08;
+  const vignettePulse = kickIntensity * 0.10;
   const vignetteOpacity = vignetteBase + vignettePulse;
 
   return (
@@ -180,38 +184,38 @@ const BeatSyncedEffects: React.FC<{ timeline: Timeline; zIndex?: number; globalT
       style={{
         zIndex,
         pointerEvents: "none",
-        // Apply shake + zoom to entire effects layer
-        transform: `translate(${shakeX}px, ${shakeY}px) scale(${zoomPunch})`,
+        // Only zoom punch (no shake — shake was too nauseating)
+        transform: `scale(${zoomPunch})`,
         transformOrigin: "50% 50%",
       }}
     >
-      {/* Vignette: dark radial gradient, pulses on kicks */}
+      {/* Vignette: subtle dark edges, barely perceptible pulse on kick */}
       <AbsoluteFill
         style={{
-          background: `radial-gradient(circle at 50% 50%, transparent 30%, rgba(0,0,0,${vignetteOpacity}) 100%)`,
+          background: `radial-gradient(circle at 50% 50%, transparent 40%, rgba(0,0,0,${vignetteOpacity}) 100%)`,
         }}
       />
 
-      {/* RGB split glitch on snare/drop: 3 offset colored layers */}
+      {/* RGB split glitch on STRONG hits only: 3 offset colored layers */}
       {snareIntensity > 0.05 && (
         <>
           <AbsoluteFill
             style={{
-              background: "rgba(255, 0, 64, 0.15)",
+              background: "rgba(255, 0, 64, 0.08)",
               mixBlendMode: "screen",
               transform: `translateX(${-rgbSplit}px)`,
             }}
           />
           <AbsoluteFill
             style={{
-              background: "rgba(0, 255, 128, 0.15)",
+              background: "rgba(0, 255, 128, 0.08)",
               mixBlendMode: "screen",
               transform: `translateX(${rgbSplit * 0.5}px)`,
             }}
           />
           <AbsoluteFill
             style={{
-              background: "rgba(0, 128, 255, 0.15)",
+              background: "rgba(0, 128, 255, 0.08)",
               mixBlendMode: "screen",
               transform: `translateX(${rgbSplit}px)`,
             }}
@@ -219,8 +223,8 @@ const BeatSyncedEffects: React.FC<{ timeline: Timeline; zIndex?: number; globalT
         </>
       )}
 
-      {/* White flash on snare/drop */}
-      {flashOpacity > 0.05 && (
+      {/* Subtle white flash on STRONG hits only */}
+      {flashOpacity > 0.03 && (
         <AbsoluteFill
           style={{
             backgroundColor: `rgba(255, 255, 255, ${flashOpacity})`,
