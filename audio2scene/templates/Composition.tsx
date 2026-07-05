@@ -528,13 +528,15 @@ const Scene: React.FC<{ slice: SceneSlice; timeline: Timeline; sceneIndex?: numb
   // Font family — use loaded Google Font
   const fontFamily = LOADED_FONT || "system-ui, sans-serif";
 
-  // ─── Ken Burns animation for images (makes them look "alive") ────────────
-  // 4 patterns, alternating per scene. Applied to image via CSS background
-  // properties (backgroundSize + backgroundPosition) so it stays in cover mode
-  // while slowly panning/zooming.
-  const useVideo = sceneIndex % 2 === 0;
-  const videoSrc = slice.video && useVideo ? slice.video : (slice.image ? null : slice.video);
-  const imageSrc = slice.image && !useVideo ? slice.image : null;
+  // ─── Media selection logic ───────────────────────────────────────────────
+  // - Both video AND image available → alternate per scene (even=video, odd=image)
+  // - Only video available → use video for ALL scenes
+  // - Only image available → use image for ALL scenes
+  // - Neither available → both null (Background falls back to InfiniteBentoPan)
+  const hasBoth = slice.video && slice.image;
+  const useVideo = hasBoth ? sceneIndex % 2 === 0 : !!slice.video;
+  const videoSrc = useVideo ? slice.video : null;
+  const imageSrc = !useVideo ? slice.image : null;
 
   // Compute Ken Burns progress (0 → 1) across scene duration
   const kenBurnsProgress = Math.min(1, Math.max(0, (frame / fps) / Math.max(0.1, sliceDuration)));
