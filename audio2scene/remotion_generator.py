@@ -1253,6 +1253,43 @@ def generate_remotion_project(
 
     # 5. Build timeline.json
     width, height = spec.dimensions
+
+    # Beat-synced events for dynamic visual effects:
+    #   beats: drum kick times (low-frequency onsets) → shake/zoom effect
+    #   onsets: strong attack times (snare/transient) → flash/RGB-split
+    #   intensities: normalized onset strength (0-1) per onset for effect magnitude
+    # Downstream Composition.tsx uses these to trigger beat-synced effects.
+    def _to_float_list(arr) -> list:
+        """Safely convert numpy array to JSON-serializable list of floats."""
+        try:
+            return [round(float(x), 3) for x in arr]
+        except Exception:
+            return []
+
+    # Strong onsets = top 30% by onset strength → snare-like hits
+    onset_times_list = _to_float_list(features.onset_times)
+    onset_env_list = _to_float_list(features.onset_env) if hasattr(features, "onset_env") else []
+    # Normalize onset strengths to 0-1
+    if onset_env_list:
+        max_env = max(onset_env_list) if onset_env_list else 1.0
+        max_env = max(max_env, 0.001)  # avoid div by zero
+        # Map each onset to its strength (best-effort — onset_frames indexing)
+        onset_strengths = []
+        for i, of in enumerate(getattr(features, "onset_frames", [])):
+            try:
+                idx = int(of)
+                if 0 <= idx < len(onset_env_list):
+                    onset_strengths.append(round(onset_env_list[idx] / max_env, 3))
+                else:
+                    onset_strengths.append(0.5)
+            except Exception:
+                onset_strengths.append(0.5)
+        # Strong onsets = strength > 0.5 (snare/drop hits)
+        strong_onsets = [onset_times_list[i] for i, s in enumerate(onset_strengths) if s > 0.5]
+    else:
+        onset_strengths = []
+        strong_onsets = []
+
     timeline = {
         "title": Path(spec.music).stem,
         "duration": round(features.duration, 3),
@@ -1262,6 +1299,11 @@ def generate_remotion_project(
         "height": height,
         "font": spec.font,  # Google Font name (e.g. "Inter") or null
         "slices": [asdict(s) for s in slices],
+        # Beat-synced events for dynamic visual effects
+        "beats": _to_float_list(features.beat_times),         # kick times (sec) → shake/zoom
+        "onsets": onset_times_list,                            # all onsets (sec) → potential flash
+        "strong_onsets": strong_onsets,                        # snare/drop hits (sec) → RGB split + flash
+        "onset_strengths": onset_strengths,                    # 0-1 magnitude per onset
     }
 
     # 6. Create project structure

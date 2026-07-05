@@ -82,6 +82,11 @@ interface Timeline {
   logo: string | null;      // logo filename in public/assets/
   symbol: string | null;    // symbol filename in public/assets/
   slices: SceneSlice[];
+  // Beat-synced events (optional — populated by audio2scene generator)
+  beats?: number[];              // kick times in seconds → shake/zoom
+  onsets?: number[];             // all onset times → potential flash
+  strong_onsets?: number[];      // snare/drop hits → RGB split + flash
+  onset_strengths?: number[];    // 0-1 magnitude per onset
 }
 
 // ─── Typography renderer — picks component by effect name ───────────────────
@@ -95,6 +100,135 @@ const TYPOGRAPHY_PROPS = {
   highlightedTextColor: "#0a0a0f",  // dark text on highlighted (marker) area
   markerColor: "#facc15",     // yellow marker
   highlightColor: "#22d3ee",  // cyan highlight for inline
+};
+
+// ─── Beat-synced dynamic effects (kick / snare / drop) ──────────────────────
+// These effects layer ON TOP of the scene background + text:
+//   - Kicks (beats)   → 1-2 frame shake + zoom punch
+//   - Snares (strong) → 2-3 frame white flash + RGB split glitch
+//   - Vignette        → flickering dark vignette synced to beat intensity
+// Triggered by events from timeline.beats / timeline.strong_onsets
+
+/**
+ * Find the most recent beat/onset before current frame, return its time-ago
+ * in seconds (or null if no event within the window).
+ */
+function _recentEvent(events: number[] | undefined, currentTimeSec: number, windowSec: number): number {
+  if (!events || events.length === 0) return Infinity;
+  // Binary search for closest event before currentTimeSec
+  let lo = 0, hi = events.length - 1, best = Infinity;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    const t = events[mid];
+    if (t <= currentTimeSec) {
+      const dt = currentTimeSec - t;
+      if (dt < windowSec) best = dt;
+      lo = mid + 1;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  return best; // seconds since most recent event, or Infinity if none in window
+}
+
+const BeatSyncedEffects: React.FC<{ timeline: Timeline; zIndex?: number; globalTimeSec?: number }> = ({ timeline, zIndex = 50, globalTimeSec }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  // Use global time if provided (TransitionSeries.Sequence resets frame to 0,
+  // so we need the slice's absolute start time to look up beats correctly)
+  const timeSec = globalTimeSec !== undefined ? globalTimeSec : frame / fps;
+
+  // Skip if no beat data
+  if (!timeline.beats && !timeline.strong_onsets) return null;
+
+  // ─── KICK: shake + zoom punch on every beat (1-2 frame decay) ─────────
+  const kickWindow = 0.12; // 120ms decay (longer = more visible)
+  const kickDt = _recentEvent(timeline.beats, timeSec, kickWindow);
+  const kickIntensity = kickDt === Infinity
+    ? 0
+    : Math.max(0, 1 - kickDt / kickWindow); // 1.0 → 0 over 120ms
+  // Shake: random offset up to 15px at peak (stronger), decays
+  const shakeX = kickIntensity > 0 ? (Math.sin(frame * 91.7) * 15 * kickIntensity) : 0;
+  const shakeY = kickIntensity > 0 ? (Math.cos(frame * 73.3) * 12 * kickIntensity) : 0;
+  // Zoom: punch 1.0 → 1.06 over 1 frame, then back (stronger)
+  const zoomPunch = 1 + kickIntensity * 0.06;
+
+  // ─── SNARE/ONSET: white flash + RGB split on ALL onsets (scaled by strength) ─
+  // Use all onsets (not just strong_onsets which may be too few for some songs).
+  // Effect magnitude scales with onset strength.
+  const snareWindow = 0.15; // 150ms decay
+  const snareDt = _recentEvent(timeline.onsets, timeSec, snareWindow);
+  const snareBaseIntensity = snareDt === Infinity
+    ? 0
+    : Math.max(0, 1 - snareDt / snareWindow);
+  // Boost intensity for strong onsets (drop/snare hits) for more dramatic effect
+  const isStrongHit = _recentEvent(timeline.strong_onsets, timeSec, snareWindow) !== Infinity;
+  const snareIntensity = snareBaseIntensity * (isStrongHit ? 1.0 : 0.6);
+  // White flash opacity — strong hit: 0.85, normal onset: 0.5
+  const flashOpacity = snareIntensity * (isStrongHit ? 0.85 : 0.5);
+  // RGB split offset — strong hit: 20px, normal onset: 8px
+  const rgbSplit = snareIntensity * (isStrongHit ? 20 : 8);
+
+  // ─── VIGNETTE: flickering dark vignette synced to beat intensity ──────
+  // Vignette is always present but pulses darker on beats
+  const vignetteBase = 0.20;
+  const vignettePulse = kickIntensity * 0.50; // up to 0.50 extra darkness on kick
+  const vignetteOpacity = vignetteBase + vignettePulse;
+
+  return (
+    <AbsoluteFill
+      style={{
+        zIndex,
+        pointerEvents: "none",
+        // Apply shake + zoom to entire effects layer
+        transform: `translate(${shakeX}px, ${shakeY}px) scale(${zoomPunch})`,
+        transformOrigin: "50% 50%",
+      }}
+    >
+      {/* Vignette: dark radial gradient, pulses on kicks */}
+      <AbsoluteFill
+        style={{
+          background: `radial-gradient(circle at 50% 50%, transparent 30%, rgba(0,0,0,${vignetteOpacity}) 100%)`,
+        }}
+      />
+
+      {/* RGB split glitch on snare/drop: 3 offset colored layers */}
+      {snareIntensity > 0.05 && (
+        <>
+          <AbsoluteFill
+            style={{
+              background: "rgba(255, 0, 64, 0.15)",
+              mixBlendMode: "screen",
+              transform: `translateX(${-rgbSplit}px)`,
+            }}
+          />
+          <AbsoluteFill
+            style={{
+              background: "rgba(0, 255, 128, 0.15)",
+              mixBlendMode: "screen",
+              transform: `translateX(${rgbSplit * 0.5}px)`,
+            }}
+          />
+          <AbsoluteFill
+            style={{
+              background: "rgba(0, 128, 255, 0.15)",
+              mixBlendMode: "screen",
+              transform: `translateX(${rgbSplit}px)`,
+            }}
+          />
+        </>
+      )}
+
+      {/* White flash on snare/drop */}
+      {flashOpacity > 0.05 && (
+        <AbsoluteFill
+          style={{
+            backgroundColor: `rgba(255, 255, 255, ${flashOpacity})`,
+          }}
+        />
+      )}
+    </AbsoluteFill>
+  );
 };
 
 /**
@@ -641,6 +775,13 @@ const Scene: React.FC<{ slice: SceneSlice; timeline: Timeline; sceneIndex?: numb
           }}
         />
       )}
+
+      {/* Beat-synced dynamic effects: shake/flash/RGB split/vignette */}
+      <BeatSyncedEffects
+        timeline={timeline}
+        zIndex={90}
+        globalTimeSec={slice.start + frame / fps}
+      />
     </AbsoluteFill>
   );
 };
