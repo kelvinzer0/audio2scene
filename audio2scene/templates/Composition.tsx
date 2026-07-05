@@ -519,7 +519,7 @@ const IntroScene: React.FC<{ slice: SceneSlice; timeline: Timeline }> = ({ slice
 
 const Scene: React.FC<{ slice: SceneSlice; timeline: Timeline; sceneIndex?: number }> = ({ slice, timeline, sceneIndex = 0 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, width, height } = useVideoConfig();
   const sliceDuration = slice.end - slice.start;
 
   // Font family — use loaded Google Font
@@ -539,28 +539,29 @@ const Scene: React.FC<{ slice: SceneSlice; timeline: Timeline; sceneIndex?: numb
   const imageSrc = slice.image && !useVideo ? slice.image : null;
 
   return (
-    <AbsoluteFill style={{ backgroundColor: "#0a0a0f", overflow: "hidden" }}>
-      {/* Media background — direct render, no wrapper, pure objectFit: cover */}
+    <AbsoluteFill
+      style={{
+        backgroundColor: "#0a0a0f",
+        overflow: "hidden",
+        // Image as CSS background-image (synchronous, no async loading issues)
+        backgroundImage: imageSrc ? `url(${staticFile(`images/${imageSrc}`)})` : undefined,
+        backgroundSize: "cover",
+        backgroundPosition: "50% 50%",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
+      {/* Video background — OffthreadVideo with objectFit: cover + objectPosition: center */}
       {videoSrc && (
         <OffthreadVideo
           src={staticFile(`videos/${videoSrc}`)}
           style={{
             position: "absolute",
-            width: "100%",
-            height: "100%",
+            width: width,
+            height: height,
             objectFit: "cover",
+            objectPosition: "50% 50%",
           }}
           muted
-        />
-      )}
-      {imageSrc && (
-        <AbsoluteFill
-          style={{
-            backgroundImage: `url(${staticFile(`images/${imageSrc}`)})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            backgroundRepeat: "no-repeat",
-          }}
         />
       )}
 
