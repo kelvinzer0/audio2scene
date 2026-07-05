@@ -382,7 +382,8 @@ const Background: React.FC<{ slice: SceneSlice; sceneIndex?: number }> = ({ slic
     return (
       <AbsoluteFill style={{ overflow: "hidden" }}>
         <BlurFillVideo src={staticFile(`videos/${slice.video}`)} scale="1.1" />
-        <AbsoluteFill style={{ backgroundColor: "rgba(0,0,0,0.55)" }} />
+        {/* Dark overlay for text contrast — zIndex:1 so it sits BELOW text (zIndex:5 in Scene) */}
+        <AbsoluteFill style={{ backgroundColor: "rgba(0,0,0,0.55)", zIndex: 1 }} />
       </AbsoluteFill>
     );
   }
@@ -399,10 +400,12 @@ const Background: React.FC<{ slice: SceneSlice; sceneIndex?: number }> = ({ slic
           src={staticFile(`images/${slice.image}`)}
           transform={`scale(${anim.scale}) translate(${anim.x}px, ${anim.y}px)`}
         />
-        {/* Subtle parallax glow overlay for "alive" feel */}
+        {/* Subtle parallax glow overlay for "alive" feel.
+            zIndex:1 (NOT 2) so it sits BELOW text (zIndex:5 in Scene).
+            Previously zIndex:2 was covering the text overlay! */}
         <AbsoluteFill
           style={{
-            zIndex: 2,
+            zIndex: 1,
             background: `linear-gradient(${135 + progress * 90}deg, rgba(168,85,247,0.15) 0%, rgba(0,0,0,0.5) 50%, rgba(34,211,238,0.1) 100%)`,
           }}
         />
@@ -415,7 +418,7 @@ const Background: React.FC<{ slice: SceneSlice; sceneIndex?: number }> = ({ slic
     return (
       <AbsoluteFill style={{ overflow: "hidden" }}>
         <BlurFillVideo src={staticFile(`videos/${slice.video}`)} scale="1.1" />
-        <AbsoluteFill style={{ backgroundColor: "rgba(0,0,0,0.55)" }} />
+        <AbsoluteFill style={{ backgroundColor: "rgba(0,0,0,0.55)", zIndex: 1 }} />
       </AbsoluteFill>
     );
   }
@@ -572,6 +575,10 @@ const Scene: React.FC<{ slice: SceneSlice; timeline: Timeline; sceneIndex?: numb
             justifyContent: "center",
             opacity: fadeOut,
             pointerEvents: "none",
+            // CRITICAL: zIndex:5 ensures text sits ABOVE background overlays
+            // (Background image gradient has zIndex:1, video dark overlay has zIndex:1)
+            // Without this, text gets covered by the overlay and becomes invisible!
+            zIndex: 5,
             // Overflow protection: constrain typography to viewport with breathing room
             padding: "0 6%",
             boxSizing: "border-box",
@@ -585,6 +592,8 @@ const Scene: React.FC<{ slice: SceneSlice; timeline: Timeline; sceneIndex?: numb
               // Allow long words to break (prevents horizontal overflow on long tokens)
               wordBreak: "break-word",
               overflowWrap: "break-word",
+              // Text shadow for guaranteed contrast against any background
+              textShadow: "0 2px 16px rgba(0,0,0,0.8), 0 0 30px rgba(0,0,0,0.6)",
             }}
           >
             {renderTypography(slice.effect, slice.text, fontFamily)}

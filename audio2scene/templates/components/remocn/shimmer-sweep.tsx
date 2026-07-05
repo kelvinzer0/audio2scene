@@ -14,8 +14,8 @@ export interface ShimmerSweepProps {
 
 export function ShimmerSweep({
   text,
-  baseColor = "#3f3f46",
-  shineColor = "#fafafa",
+  baseColor = "#a1a1aa",  // light gray (was #3f3f46 dark gray — invisible on dark video/image bg)
+  shineColor = "#ffffff",  // pure white for max shimmer contrast
   fontSize = 96,
   fontWeight = 700,
   speed = 1,
