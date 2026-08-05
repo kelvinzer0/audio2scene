@@ -26,16 +26,15 @@ body:
         Kalau pilih lagu di sini, TIDAK perlu isi Music URL di bawah.
       options:
         - 🚫 Tidak pakai trending — saya punya URL sendiri
-        - 1. Se Fue — El Trono de Mexico (1.4M)
-        - 2. Garam & Madu (Sakit Dadaku) — Tenxi, Jemsii & Naykilla (1.1M)
-        - 3. APT. — ROSÉ & Bruno Mars (804K)
-        - 4. Die With A Smile — Lady Gaga & Bruno Mars (720K)
-        - 5. Espresso — Sabrina Carpenter (680K)
-        - 6. BIRDS OF A FEATHER — Billie Eilish (540K)
-        - 7. Gala bunga matahari — Sal Priadi (410K)
-        - 8. Sial — Mahalini (470K)
-        - 9. Sang Dewi — Lyodra & Andi Rianto (380K)
-        - 10. Cinta Luar Biasa — Andmesh (350K)
+        - 1. kamu salah orang — AULIA RIZKI (2.7M)
+        - 2. Ai Quero Bomba — JOKER ZEVEDO (2.4M)
+        - 3. Garam & Madu (Sakit Dadaku) — Tenxi, Jemsii & Naykilla (1.1M)
+        - 4. Don't Get The Wrong Partner — Elissa Heuntet (915K)
+        - 5. Good Days (Edit) — Lila boys (284K)
+        - 6. - — Fadhilah Intan (225K)
+        - 7. Demi Cinta Nih Yee… — Hetty Koes Endang (161K)
+        - 8. Тримай — Khrystyna Soloviy (49K)
+        - 9. Bahara (From "I Hate Luv Storys") — Shreya Ghoshal, Sona Mohapatra (35K)
 
     validations:
       required: true
