@@ -32,11 +32,9 @@ body:
         - 4. Garam & Madu (Sakit Dadaku) — Tenxi, Jemsii & Naykilla (1.1M)
         - 5. Don't Get The Wrong Partner — Elissa Heuntet (912K)
         - 6. APT. — ROSÉ & Bruno Mars (802K)
-        - 7. Tip Toe — HYBS (494K)
-        - 8. Rewrite the Stars Sound Tiktok — Yonex (435K)
-        - 9. - — Fadhilah Intan (228K)
-        - 10. Demi Cinta Nih Yee… — Hetty Koes Endang (161K)
-        - 11. Bahara (From "I Hate Luv Storys") — Shreya Ghoshal, Sona Mohapatra (35K)
+        - 7. - — Fadhilah Intan (228K)
+        - 8. Demi Cinta Nih Yee… — Hetty Koes Endang (161K)
+        - 9. Bahara (From "I Hate Luv Storys") — Shreya Ghoshal, Sona Mohapatra (35K)
 
     validations:
       required: true
