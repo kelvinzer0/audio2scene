@@ -1,17 +1,17 @@
 {
-  "fetched_at": "2026-08-25T01:04:31.955500+00:00",
+  "fetched_at": "2026-08-26T01:06:22.975999+00:00",
   "region": "ID",
   "count": 10,
   "tracks": [
     {
-      "title": "Se Fue",
-      "artist": "El Trono de Mexico",
-      "play_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/08/47/70/084770b7-d4bc-d00e-1e3a-5231c55ad564/mzaf_17962200068226172442.plus.aac.p.m4a",
-      "duration": 171,
+      "title": "Se Fué",
+      "artist": "El Trono de México",
+      "play_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/c4/01/3a/c4013ab8-7358-3eda-b4a8-43c4f0c4750d/mzaf_16913689230766759012.plus.aac.p.m4a",
+      "duration": 172,
       "likes": 1400000,
       "source": "itunes_search",
-      "artwork": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/5e/47/6d/5e476d51-7317-032f-2c2f-07d28234fbb6/198015528166.jpg/100x100bb.jpg",
-      "track_view_url": "https://music.apple.com/id/album/se-fue/1668619106?i=1668619196&uo=4"
+      "artwork": "https://is1-ssl.mzstatic.com/image/thumb/Music1/v4/1c/d2/3c/1cd23cd4-946e-3283-6b0f-a1c0885cea1e/097037700737.jpg/100x100bb.jpg",
+      "track_view_url": "https://music.apple.com/id/album/se-fu%C3%A9/966700080?i=966700084&uo=4"
     },
     {
       "title": "Garam & Madu (Sakit Dadaku)",
