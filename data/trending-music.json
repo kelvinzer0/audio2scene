@@ -1,27 +1,27 @@
 {
-  "fetched_at": "2026-08-30T03:30:30.660781+00:00",
+  "fetched_at": "2026-08-31T03:28:48.497346+00:00",
   "region": "ID",
   "count": 10,
   "tracks": [
     {
-      "title": "Se Fue",
+      "title": "Se Fue (En Vivo)",
       "artist": "El Trono de México",
-      "play_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/24/df/5b/24df5bd9-7956-fa2c-e161-d4e410ed5d70/mzaf_16962179762176894960.plus.aac.p.m4a",
-      "duration": 171,
+      "play_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/ee/dd/11/eedd11ea-c70f-6299-9880-e00815d3059d/mzaf_12408743377320332304.plus.aac.p.m4a",
+      "duration": 216,
       "likes": 1400000,
       "source": "itunes_search",
-      "artwork": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/25/ae/ef/25aeef86-7e72-8c95-b892-826553f6f738/198015928324_cover.jpg/100x100bb.jpg",
-      "track_view_url": "https://music.apple.com/id/album/se-fue/6806613242?i=6806613360&uo=4"
+      "artwork": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/fe/72/7a/fe727a78-fc55-b564-840b-ac9b8223a7b9/199800061431_cover.jpg/100x100bb.jpg",
+      "track_view_url": "https://music.apple.com/id/album/se-fue-en-vivo/6806759817?i=6806759830&uo=4"
     },
     {
-      "title": "Garam & Madu (Sakit Dadaku)",
+      "title": "Garam & Madu (Sakit Dadaku) [Sped Up]",
       "artist": "Tenxi, Jemsii & Naykilla",
-      "play_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/9e/7e/01/9e7e01c8-6505-237c-6c36-a66949d47647/mzaf_10136379621527005576.plus.aac.p.m4a",
-      "duration": 184,
+      "play_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/7f/ce/ae/7fceaef4-c0bd-0151-a339-8691f7a9c08a/mzaf_4646205913236668913.plus.aac.p.m4a",
+      "duration": 160,
       "likes": 1100000,
       "source": "itunes_search",
-      "artwork": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/49/13/7e/49137e2e-38f2-213a-11e6-00d5c194c05d/195140103213.jpg/100x100bb.jpg",
-      "track_view_url": "https://music.apple.com/id/album/garam-madu-sakit-dadaku/1784652612?i=1784652744&uo=4"
+      "artwork": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/66/82/0f/66820f0e-f465-1394-792d-3ebc37f1d134/195140103497.jpg/100x100bb.jpg",
+      "track_view_url": "https://music.apple.com/id/album/garam-madu-sakit-dadaku-sped-up/1793570673?i=1793570682&uo=4"
     },
     {
       "title": "APT.",
@@ -76,7 +76,7 @@
     {
       "title": "Sial",
       "artist": "Mahalini",
-      "play_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview113/v4/44/70/77/4470772f-05fd-4c8a-a884-e756137d6933/mzaf_5994443746285812591.plus.aac.p.m4a",
+      "play_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/ce/93/60/ce9360d0-14e3-ec93-0da4-ba88d94a7212/mzaf_16150840965482830516.plus.aac.p.m4a",
       "duration": 243,
       "likes": 470000,
       "source": "itunes_search",
