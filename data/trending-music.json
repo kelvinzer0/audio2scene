@@ -1,27 +1,27 @@
 {
-  "fetched_at": "2026-08-31T03:28:48.497346+00:00",
+  "fetched_at": "2026-09-01T03:27:51.453151+00:00",
   "region": "ID",
   "count": 10,
   "tracks": [
     {
-      "title": "Se Fue (En Vivo)",
+      "title": "Se Fué",
       "artist": "El Trono de México",
-      "play_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/ee/dd/11/eedd11ea-c70f-6299-9880-e00815d3059d/mzaf_12408743377320332304.plus.aac.p.m4a",
-      "duration": 216,
+      "play_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/25/7a/30/257a30ba-6933-f2c1-bc93-4267cb55f22d/mzaf_2299828002813993357.plus.aac.p.m4a",
+      "duration": 171,
       "likes": 1400000,
       "source": "itunes_search",
-      "artwork": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/fe/72/7a/fe727a78-fc55-b564-840b-ac9b8223a7b9/199800061431_cover.jpg/100x100bb.jpg",
-      "track_view_url": "https://music.apple.com/id/album/se-fue-en-vivo/6806759817?i=6806759830&uo=4"
+      "artwork": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/fb/d4/92/fbd492ac-917f-1b2c-0808-4fecb49ea5f9/198015528166_cover.jpg/100x100bb.jpg",
+      "track_view_url": "https://music.apple.com/id/album/se-fu%C3%A9/6806794942?i=6806795490&uo=4"
     },
     {
-      "title": "Garam & Madu (Sakit Dadaku) [Sped Up]",
+      "title": "Garam & Madu (Sakit Dadaku)",
       "artist": "Tenxi, Jemsii & Naykilla",
-      "play_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/7f/ce/ae/7fceaef4-c0bd-0151-a339-8691f7a9c08a/mzaf_4646205913236668913.plus.aac.p.m4a",
-      "duration": 160,
+      "play_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/02/03/87/02038701-9b27-8374-77ff-ea9685273acd/mzaf_11595144849955956941.plus.aac.p.m4a",
+      "duration": 184,
       "likes": 1100000,
       "source": "itunes_search",
-      "artwork": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/66/82/0f/66820f0e-f465-1394-792d-3ebc37f1d134/195140103497.jpg/100x100bb.jpg",
-      "track_view_url": "https://music.apple.com/id/album/garam-madu-sakit-dadaku-sped-up/1793570673?i=1793570682&uo=4"
+      "artwork": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/49/13/7e/49137e2e-38f2-213a-11e6-00d5c194c05d/195140103213.jpg/100x100bb.jpg",
+      "track_view_url": "https://music.apple.com/id/album/garam-madu-sakit-dadaku/1784652612?i=1784652744&uo=4"
     },
     {
       "title": "APT.",
@@ -96,7 +96,7 @@
     {
       "title": "Cinta Luar Biasa",
       "artist": "Andmesh",
-      "play_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/a2/da/30/a2da30f2-8ce5-4472-d7fd-3e980a887a3b/mzaf_6984016591591106490.plus.aac.p.m4a",
+      "play_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/ea/2e/af/ea2eafa1-80e6-6411-abef-b24cd55329de/mzaf_5221466587592102008.plus.aac.p.m4a",
       "duration": 255,
       "likes": 350000,
       "source": "itunes_search",
