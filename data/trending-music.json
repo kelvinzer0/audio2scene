@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-09-01T03:27:51.453151+00:00",
+  "fetched_at": "2026-09-02T02:46:02.397500+00:00",
   "region": "ID",
   "count": 10,
   "tracks": [
@@ -14,14 +14,14 @@
       "track_view_url": "https://music.apple.com/id/album/se-fu%C3%A9/6806794942?i=6806795490&uo=4"
     },
     {
-      "title": "Garam & Madu (Sakit Dadaku)",
+      "title": "Garam & Madu (Sakit Dadaku) [Sped Up]",
       "artist": "Tenxi, Jemsii & Naykilla",
-      "play_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/02/03/87/02038701-9b27-8374-77ff-ea9685273acd/mzaf_11595144849955956941.plus.aac.p.m4a",
-      "duration": 184,
+      "play_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/7f/ce/ae/7fceaef4-c0bd-0151-a339-8691f7a9c08a/mzaf_4646205913236668913.plus.aac.p.m4a",
+      "duration": 160,
       "likes": 1100000,
       "source": "itunes_search",
-      "artwork": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/49/13/7e/49137e2e-38f2-213a-11e6-00d5c194c05d/195140103213.jpg/100x100bb.jpg",
-      "track_view_url": "https://music.apple.com/id/album/garam-madu-sakit-dadaku/1784652612?i=1784652744&uo=4"
+      "artwork": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/66/82/0f/66820f0e-f465-1394-792d-3ebc37f1d134/195140103497.jpg/100x100bb.jpg",
+      "track_view_url": "https://music.apple.com/id/album/garam-madu-sakit-dadaku-sped-up/1793570673?i=1793570682&uo=4"
     },
     {
       "title": "APT.",
