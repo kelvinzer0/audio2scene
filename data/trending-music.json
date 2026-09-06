@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-09-05T02:51:20.924577+00:00",
+  "fetched_at": "2026-09-06T02:49:40.637178+00:00",
   "region": "ID",
   "count": 11,
   "tracks": [
@@ -11,7 +11,7 @@
       "play_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview122/v4/4e/cb/a2/4ecba2b1-0085-bf6e-a6a0-9a13fb25c749/mzaf_5939041995559252407.plus.aac.ep.m4a",
       "tiktok_url": "https://www.tiktok.com/music/-7065014354940349210",
       "download_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview122/v4/4e/cb/a2/4ecba2b1-0085-bf6e-a6a0-9a13fb25c749/mzaf_5939041995559252407.plus.aac.ep.m4a",
-      "cover": "https://p16-common-sign.tiktokcdn-eu.com/tos-useast2a-avt-0068-giso/9052328b31f7dd63583e0fdeea48df11~tplv-tiktokx-cropcenter:100:100.jpeg?dr=10399&refresh_token=c899b997&x-expires=1788724800&x-signature=oOedoqNnODVJNavTFD9e4XGwXJw%3D&t=4d5b0474&ps=13740610&shp=a5d48078&shcp=81f88b70&idc=no1a",
+      "cover": "https://sys-datapoint.flaidata.com/Sound/Avatars/7065014354940349210.jpeg",
       "duration": 69,
       "likes": 2800000,
       "plays": 0,
@@ -86,7 +86,7 @@
       "play_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/87/9c/81/879c81ba-3017-6999-c209-83ba0e270747/mzaf_1420165160189613980.plus.aac.ep.m4a",
       "tiktok_url": "https://www.tiktok.com/music/-7254272089899764486",
       "download_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/87/9c/81/879c81ba-3017-6999-c209-83ba0e270747/mzaf_1420165160189613980.plus.aac.ep.m4a",
-      "cover": "https://p16-common-sign.tiktokcdn-eu.com/musically-maliva-obj/1594805258216454~tplv-tiktokx-cropcenter:100:100.jpeg?dr=10399&refresh_token=ce3d8c5b&x-expires=1788710400&x-signature=CQ6cMqwqIMPY2fOPFi%2FnPW9WTwg%3D&t=4d5b0474&ps=13740610&shp=a5d48078&shcp=81f88b70&idc=no1a",
+      "cover": "https://sys-datapoint.flaidata.com/Sound/Avatars/7254272089899764486.jpeg",
       "duration": 60,
       "likes": 907600,
       "plays": 0,
@@ -116,7 +116,7 @@
       "play_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview122/v4/56/c1/c5/56c1c554-b1f2-3a8d-9236-7b27af9cfe71/mzaf_16864356597562675516.plus.aac.ep.m4a",
       "tiktok_url": "https://www.tiktok.com/music/-7345653928603552517",
       "download_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview122/v4/56/c1/c5/56c1c554-b1f2-3a8d-9236-7b27af9cfe71/mzaf_16864356597562675516.plus.aac.ep.m4a",
-      "cover": "https://p16-common-sign.tiktokcdn-eu.com/tos-maliva-avt-0068/b4a49ed06d5070ee079a683bc6880d49~tplv-tiktokx-cropcenter:100:100.jpeg?dr=10399&refresh_token=639ba7a4&x-expires=1788714000&x-signature=c%2F1tXWhUb7dsFi8MMztDXIq7jYM%3D&t=4d5b0474&ps=13740610&shp=a5d48078&shcp=81f88b70&idc=no1a",
+      "cover": "https://sys-datapoint.flaidata.com/Sound/Avatars/7345653928603552517.jpeg",
       "duration": 900,
       "likes": 491100,
       "plays": 0,
