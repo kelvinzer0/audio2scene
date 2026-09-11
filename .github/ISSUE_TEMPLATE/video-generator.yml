@@ -33,10 +33,9 @@ body:
         - 5. Garam & Madu (Sakit Dadaku) — Tenxi, Jemsii & Naykilla (1.1M)
         - 6. Don't Get The Wrong Partner — Elissa Heuntet (907K)
         - 7. APT. — ROSÉ & Bruno Mars (801K)
-        - 8. Tip Toe — HYBS (490K)
-        - 9. - — Fadhilah Intan (230K)
-        - 10. Demi Cinta Nih Yee… — Hetty Koes Endang (161K)
-        - 11. Bahara (From "I Hate Luv Storys") — Shreya Ghoshal, Sona Mohapatra (36K)
+        - 8. - — Fadhilah Intan (230K)
+        - 9. Demi Cinta Nih Yee… — Hetty Koes Endang (161K)
+        - 10. Bahara (From "I Hate Luv Storys") — Shreya Ghoshal, Sona Mohapatra (36K)
 
     validations:
       required: true
