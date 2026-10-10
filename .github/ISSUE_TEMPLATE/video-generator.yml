@@ -26,15 +26,18 @@ body:
         Kalau pilih lagu di sini, TIDAK perlu isi Music URL di bawah.
       options:
         - 🚫 Tidak pakai trending — saya punya URL sendiri
-        - 1. Bahara (From "I Hate Luv Storys") — Shreya Ghoshal, Sona Mohapatra (36K)
-        - 2. Don't Get The Wrong Partner — Elissa Heuntet (902K)
-        - 3. Demi Cinta Nih Yee… — Hetty Koes Endang (162K)
-        - 4. - — Fadhilah Intan (236K)
-        - 5. Тримай — Khrystyna Soloviy (52K)
-        - 6. Se Fue — El Trono de Mexico (1.4M)
-        - 7. APT. — ROSÉ & Bruno Mars (799K)
-        - 8. Ai Quero Bomba — JOKER ZEVEDO (2.3M)
-        - 9. kamu salah orang — AULIA RIZKI (2.7M)
+        - 1. Tip Toe — HYBS (487K)
+        - 2. Tiktok ki duniya  Nr bamaniya  Song — Nr bamaniya Official (96K)
+        - 3. Bahara (From "I Hate Luv Storys") — Shreya Ghoshal, Sona Mohapatra (36K)
+        - 4. Don't Get The Wrong Partner — Elissa Heuntet (901K)
+        - 5. Demi Cinta Nih Yee… — Hetty Koes Endang (162K)
+        - 6. - — Fadhilah Intan (236K)
+        - 7. Тримай — Khrystyna Soloviy (52K)
+        - 8. Se Fue — El Trono de Mexico (1.4M)
+        - 9. That’s So True — Gracie Abrams (308K)
+        - 10. APT. — ROSÉ & Bruno Mars (799K)
+        - 11. Ai Quero Bomba — JOKER ZEVEDO (2.3M)
+        - 12. kamu salah orang — AULIA RIZKI (2.7M)
 
     validations:
       required: true
